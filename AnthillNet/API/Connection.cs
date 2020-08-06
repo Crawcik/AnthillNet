@@ -33,6 +33,16 @@ namespace AnthillNet.API
  
             }
         }
-        //Delegates
+        
+        public void SendMessage(ulong destiny, object data)
+        {
+            byte[] buffer = (new Message(destiny, data)).Serialize();
+            socket.BeginSend(buffer, 0, buffer.Length, 0, SendingComplete, null);
+        }
+
+        private void SendingComplete(IAsyncResult ar)
+        {
+            socket.EndSend(ar);
+        }
     }
 }

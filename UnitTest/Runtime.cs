@@ -1,7 +1,8 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using AnthillNet;
 using System.Threading;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+using AnthillNet;
 
 namespace UnitTest
 {
@@ -23,6 +24,7 @@ namespace UnitTest
             client.Logging.OnNetworkLog += OnNetworkLog;
             client.Init(8);
             client.Connect("192.168.1.101", 7783);
+            client.Send(0, "TEST");
 
             Thread.Sleep(-1);
         }

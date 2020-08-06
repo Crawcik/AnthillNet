@@ -44,6 +44,7 @@
     <Compile Include="API\LoggingPriority.cs" />
     <Compile Include="API\NetworkLog.cs" />
     <Compile Include="API\Message.cs" />
+    <Compile Include="API\Host.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="API\Connection.cs" />
     <Compile Include="API\NetworkBase.cs" />

@@ -9,10 +9,10 @@ namespace AnthillNet.API
     public struct Message
     {
         private static readonly BinaryFormatter formatter = new BinaryFormatter();
-        public byte destiny { private set; get; }
+        public ulong destiny { private set; get; }
         public object data { private set; get; }
 
-        public Message(byte destiny, object data)
+        public Message(ulong destiny, object data)
         {
             this.destiny = destiny;
             this.data = data;
