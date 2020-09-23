@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AnthillNet.API
+namespace AnthillNet.Core
 {
     public delegate void NetworkLogHandler(object sender, NetworkLogArgs e);
     public class NetworkLog
@@ -31,5 +31,12 @@ namespace AnthillNet.API
             this.Priority = priority;
             this.Message = message;
         }
+    }
+
+    public enum LogType
+    {
+        Info,
+        Error,
+        Debug
     }
 }

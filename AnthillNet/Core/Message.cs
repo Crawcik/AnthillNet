@@ -3,7 +3,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace AnthillNet.API
+namespace AnthillNet.Core
 {
     [Serializable]
     public struct Message
@@ -20,7 +20,6 @@ namespace AnthillNet.API
 
         public static Message Deserialize(byte[] raw_data)
         {
-            MemoryStream stream = new MemoryStream();
             Message message;
             try
             {
@@ -30,10 +29,6 @@ namespace AnthillNet.API
             {
                 Console.WriteLine("Failed to serialize. Reason: " + e.Message);
                 throw;
-            }
-            finally
-            {
-                stream.Close();
             }
             return message;
         }

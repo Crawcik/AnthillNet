@@ -2,37 +2,64 @@
 using System.Threading;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-using AnthillNet;
+using System.Linq;
+using AnthillNet.Core;
 
 namespace UnitTest
 {
     [TestClass]
     public class Runtime
     {
+        public static int message_count;
+
         [TestMethod]
         public static void Main()
         {
-            Server server = new Server(ProtocolsType.TCP);
-            server.Logging.LogPriority = AnthillNet.API.LogType.Debug;
-            server.Logging.OnNetworkLog += OnNetworkLog;
-            server.Init(8);
-            server.Start(7783);
-            Thread.Sleep(1000);
-
-            Client client = new Client(ProtocolsType.TCP);
-            client.Logging.LogPriority = AnthillNet.API.LogType.Debug;
-            client.Logging.OnNetworkLog += OnNetworkLog;
-            client.Init(8);
-            client.Connect("192.168.1.101", 7783);
-            client.Send(0, "TEST");
-
+            Test();
             Thread.Sleep(-1);
         }
 
-
-        private static void OnNetworkLog(object sender, AnthillNet.API.NetworkLogArgs e)
+        public static void Test()
         {
-            Console.WriteLine($"[{e.Time}][{e.LogName}][{e.Priority}] {e.Message}");
+            Server server = new Server(ProtocolType.TCP);
+            server.Logging.LogPriority = LogType.Debug;
+            server.Logging.OnNetworkLog += OnNetworkLog;
+            server.Init();
+            server.Start(7783);
+            Client client = new Client(ProtocolType.TCP);
+            client.Logging.LogPriority = LogType.Debug;
+            client.Logging.OnNetworkLog += OnNetworkLog;
+            client.Init();
+            client.Connect("127.0.0.1", 7783);
+            client.Send(0, Console.ReadLine());
+        }
+
+        private static void OnRevieceMessage(object sender, Message[] messages)
+        {
+            string message = string.Join("\n", messages.Select(x => (string)x.data));
+            ((Host)sender).Logging.Log("Messages:\n" + message);
+        }
+
+        private static void OnNetworkLog(object sender, NetworkLogArgs e)
+        {
+            Console.Write($"[{e.Time}]");
+            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.Write($"[{e.LogName}]");
+            switch (e.Priority)
+            {
+                case LogType.Info:
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                case LogType.Error:
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    break;
+                case LogType.Debug:
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    break;
+            }
+            Console.Write($"[{e.Priority}]");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"{e.Message}\n");
         }
     }
 }

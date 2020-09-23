@@ -1,51 +1,51 @@
 ﻿using System;
-using AnthillNet.API;
 
-namespace AnthillNet
+namespace AnthillNet.Core
 {
     public class Client : Host, IDisposable
     {
         private Connection Host;
-        public NetworkLog Logging = new NetworkLog();
-        public bool Connected => Host.socket.Connected;
-        public string HostAddress => Host.socket.RemoteEndPoint.ToString();
+        private byte TickRate;
+        public string HostAddress => Host.EndPoint.ToString();
 
         private Client() { }
 
-        public Client(ProtocolsType type)
+        public Client(ProtocolType type)
         {
             Logging.LogName = "Client";
             switch (type)
             {
-                case ProtocolsType.TCP:
+                case ProtocolType.TCP:
                     Transport = new ClientTCP();
                     break;
                 default:
                     throw new Exception("Valid protocol type");
             }
             Transport.OnTick += OnTick;
-            Transport.OnConnectionStabilized += OnConnectionStabilized;
+            Transport.OnConnect += OnConnectionStabilized;
+            Transport.OnIncomingMessages += OnIncomingMessages;
         }
 
         public override void Init(byte tickRate = 32)
         {
             Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
-            Transport.TickRate = tickRate;
+            TickRate = tickRate;
         }
 
         private void OnTick()
         {
-            if(!Host.socket.Connected)
-                Logging.Log($"Connection lost!", LogType.Error);
-            if (Host.Messages.Count != 0)
-                this.IncomingMessagesInvoke(Host.Messages.ToArray());
+            Send(0, "BRUH MOMENTO");
         }
 
         private void OnConnectionStabilized(Connection connection)
         {
             Host = connection;
-            this.ConnectedInvoke(connection.socket.RemoteEndPoint.ToString());
-            Logging.Log($"Connected to: {connection.socket.RemoteEndPoint}");
+            Logging.Log($"Connected to: {connection.EndPoint}");
+        }
+
+        private void OnIncomingMessages(Connection connection)
+        {
+            throw new NotImplementedException();
         }
 
         public void Connect(string address ,ushort port)
@@ -56,14 +56,12 @@ namespace AnthillNet
 
         public void Send(ulong destiny, object data)
         {
-            Host.SendMessage(destiny, data);
+            Transport.Send(new Message(0, data));
         }
 
         public override void Stop()
         {
             Logging.Log($"Stopping...", LogType.Debug);
-            Host.socket.Disconnect(false);
-            Host = null;
             Transport.Stop();
             Logging.Log($"Stopped");
         }
@@ -71,9 +69,7 @@ namespace AnthillNet
         public void Dispose()
         {
             Logging.Log($"Disposing", LogType.Debug);
-            Host.socket.Disconnect(false);
             Transport.ForceStop();
-            Host = null;
         }
     }
 }

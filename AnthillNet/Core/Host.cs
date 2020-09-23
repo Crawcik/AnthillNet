@@ -1,7 +1,9 @@
-﻿namespace AnthillNet.API
+﻿namespace AnthillNet.Core
 {
     public abstract class Host
     {
+        protected Host() { }
+
         //Delegates
         public delegate void ConnectedHandler(object sender, string address);
         public delegate void DisconnectedHandler(object sender, string address);
@@ -15,8 +17,9 @@
         protected void DisconnectedInvoke(string address) => OnDisconnect?.Invoke(this, address);
         protected void IncomingMessagesInvoke(Message[] messages) => OnRevieceMessage?.Invoke(this, messages);
 
-        protected Base Transport;
-        public ProtocolsType Protocol;
+        internal Base Transport;
+        public ProtocolType Protocol;
+        public NetworkLog Logging { protected set; get; } = new NetworkLog();
         public abstract void Init(byte tickRate = 32);
         public abstract void Stop();
     }
