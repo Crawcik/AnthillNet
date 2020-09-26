@@ -3,10 +3,11 @@ using System.Collections.Generic;
 
 namespace AnthillNet.Core
 {
-    public class Server : Host, IDisposable
+    public class Server : Host
     {
-        private byte TickRate;
+        public byte TickRate { get; private set; }
 
+        #region Setting
         private Server() { }
         public Server(ProtocolType type)
         {
@@ -16,26 +17,21 @@ namespace AnthillNet.Core
                 case ProtocolType.TCP:
                     Transport = new ServerTCP();
                     break;
+                case ProtocolType.UDP:
+                    Transport = new ServerUDP();
+                    break;
                 default:
-                    throw new Exception("Valid protocol type");
+                    throw new InvalidOperationException();
             }
             Protocol = type;
             Transport.OnConnect += OnConnectionStabilized;
             Transport.OnIncomingMessages += OnIncomingMessages;
-            Transport.OnTick += OnTick;
         }
 
         public override void Init(byte tickRate = 32)
         {
             Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
             TickRate = tickRate;
-        }
-
-
-
-        private void OnTick()
-        {
-            
         }
 
         public void Start(ushort port) {
@@ -49,7 +45,20 @@ namespace AnthillNet.Core
             Transport.Stop();
             Logging.Log($"Stopped");
         }
+        #endregion
+        #region Events
+        private void OnConnectionStabilized(Connection connection)
+        {
+            Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
+        }
 
+        private void OnIncomingMessages(Connection connection)
+        {
+            foreach (Message message in connection.GetMessages())
+                Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
+        }
+        #endregion
+        #region Functions
         public void Send(ulong destiny, object data)
         {
             /*foreach(Connection connection in Connections.Values)
@@ -60,19 +69,8 @@ namespace AnthillNet.Core
         {
             /*Connections[address].SendMessage(destiny, data);*/
         }
-
-        private void OnConnectionStabilized(Connection connection)
-        {
-            Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
-        }
-
-        private void OnIncomingMessages(Connection connection)
-        {
-            foreach(Message message in connection.GetMessages())
-                Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
-        }
-
-        public void Dispose()
+        #endregion
+        ~Server()
         {
             /*Logging.Log($"Stopping...", LogType.Debug);
             foreach (Connection connection in Connections.Values)

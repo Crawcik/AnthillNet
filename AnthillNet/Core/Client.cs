@@ -2,12 +2,13 @@
 
 namespace AnthillNet.Core
 {
-    public class Client : Host, IDisposable
+    public class Client : Host
     {
         private Connection Host;
-        private byte TickRate;
+        public byte TickRate { get; private set; }
         public string HostAddress => Host.EndPoint.ToString();
 
+        #region Setting
         private Client() { }
 
         public Client(ProtocolType type)
@@ -18,10 +19,13 @@ namespace AnthillNet.Core
                 case ProtocolType.TCP:
                     Transport = new ClientTCP();
                     break;
+                case ProtocolType.UDP:
+                    Transport = new ClientUDP();
+                    break;
                 default:
-                    throw new Exception("Valid protocol type");
+                    throw new InvalidOperationException();
             }
-            Transport.OnTick += OnTick;
+            Protocol = type;
             Transport.OnConnect += OnConnectionStabilized;
             Transport.OnIncomingMessages += OnIncomingMessages;
         }
@@ -32,11 +36,14 @@ namespace AnthillNet.Core
             TickRate = tickRate;
         }
 
-        private void OnTick()
+        public override void Stop()
         {
-            Send(0, "BRUH MOMENTO");
+            Logging.Log($"Stopping...", LogType.Debug);
+            Transport.Stop();
+            Logging.Log($"Stopped");
         }
-
+        #endregion
+        #region Events
         private void OnConnectionStabilized(Connection connection)
         {
             Host = connection;
@@ -47,26 +54,20 @@ namespace AnthillNet.Core
         {
             throw new NotImplementedException();
         }
-
+        #endregion
+        #region Functions
         public void Connect(string address ,ushort port)
         {
             Logging.Log($"Connecting to: {address}", LogType.Debug);
-            Transport.Start(address, port);
+            Transport.Start(address, port, TickRate);
         }
 
         public void Send(ulong destiny, object data)
         {
             Transport.Send(new Message(0, data));
         }
-
-        public override void Stop()
-        {
-            Logging.Log($"Stopping...", LogType.Debug);
-            Transport.Stop();
-            Logging.Log($"Stopped");
-        }
-
-        public void Dispose()
+        #endregion
+        ~Client()
         {
             Logging.Log($"Disposing", LogType.Debug);
             Transport.ForceStop();
