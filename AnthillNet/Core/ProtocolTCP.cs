@@ -75,7 +75,7 @@ namespace AnthillNet.Core
             if (this.Active) return;
             this.Client = new TcpClient();
             IPAddress iPAddress = IPAddress.Parse(hostname);
-            this.isConnecting = false;
+            this.isConnecting = true;
             this.Client.Connect(iPAddress, port);
             base.Start(hostname, port);
         }
@@ -98,7 +98,7 @@ namespace AnthillNet.Core
                 if (this.Client.Connected)
                 {
                     this.connection = new Connection(Client.Client.RemoteEndPoint);
-                    this.Connect(connection);
+                    base.Connect(connection);
                     this.Client.Client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, Client.Client);
                     this.isConnecting = false;
                 }
