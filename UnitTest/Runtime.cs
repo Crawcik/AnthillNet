@@ -4,6 +4,11 @@ using AnthillNet.Core;
 
 Test1();
 
+/// <summary> Keys info:
+/// Q - Quit
+/// C - Send string to server as client
+/// S - Send string to all clients as server
+/// </summary>
 void Test1()
 {
     Console.WriteLine("Port:");
@@ -27,18 +32,19 @@ void Test1()
     client.Init(4);
     client.Connect(IP, 7783);
 loop:
-    if (Console.ReadKey().Key == ConsoleKey.S)
+    switch(Console.ReadKey().Key)
     {
-        Console.WriteLine("> ");
-        server.Send(0, Console.ReadLine());
+        case ConsoleKey.S: 
+            Console.Write("> ");
+            server.Send(0, Console.ReadLine());
+            break;
+        case ConsoleKey.C:
+            Console.WriteLine("> ");
+            client.Send(0, Console.ReadLine());
+            break;
+        case ConsoleKey.Q:
+            return;
     }
-    else if (Console.ReadKey().Key == ConsoleKey.C)
-    {
-        Console.WriteLine("> ");
-        client.Send(0, Console.ReadLine());
-    }
-    else if (Console.ReadKey().Key == ConsoleKey.Q)
-        return;
 goto loop;
 }
 
