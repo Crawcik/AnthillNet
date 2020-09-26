@@ -16,7 +16,7 @@ namespace AnthillNet.Core
             this.Listener = TcpListener.Create(port);
             this.Dictionary = new Dictionary<EndPoint, Connection>();
             this.Listener.Start();
-            base.Start(hostname, port);
+            base.Start(hostname, port, tickRate);
         }
         public override void Stop()
         {
@@ -51,12 +51,10 @@ namespace AnthillNet.Core
             Socket socket = (Socket)ar.AsyncState;
             try
             {
-                if (socket.EndReceive(ar) <= 0)
-                {
-                    byte[] buffer = new byte[this.MaxMessageSize];
-                    socket.Receive(buffer, buffer.Length, 0);
-                    this.Dictionary[socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
-                }
+                socket.EndReceive(ar);
+                byte[] buffer = new byte[this.MaxMessageSize];
+                socket.Receive(buffer, buffer.Length, 0);
+                this.Dictionary[socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
             }
             catch
             {
@@ -79,7 +77,7 @@ namespace AnthillNet.Core
             IPAddress iPAddress = IPAddress.Parse(hostname);
             this.isConnecting = false;
             this.Client.Connect(iPAddress, port);
-            base.Start(hostname, port);
+            base.Start(hostname, port, tickRate);
         }
         public override void Stop()
         {

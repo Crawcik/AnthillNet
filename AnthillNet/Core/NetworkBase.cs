@@ -9,13 +9,14 @@ namespace AnthillNet.Core
     {
         protected Base() => Clock = new Thread(() =>
         {
+            int rest = 1;
             while (!this.ForceOff)
             {
                 int before_tick = DateTime.Now.Millisecond;
                 if (!this.isPause)
                     this.Tick();
-                if (this.TickRate - (DateTime.Now.Millisecond - before_tick) > 0)
-                    Thread.Sleep(1 / (this.TickRate - (DateTime.Now.Millisecond - before_tick)));
+                if ((rest = this.TickRate - (DateTime.Now.Millisecond - before_tick)) > 0)
+                    Thread.Sleep(1 / rest == 0 ? TickRate : rest);
             }
             this.OnStop?.Invoke();
         })
