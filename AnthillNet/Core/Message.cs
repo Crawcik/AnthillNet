@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
@@ -11,11 +12,13 @@ namespace AnthillNet.Core
         private static readonly BinaryFormatter formatter = new BinaryFormatter();
         public ulong destiny { private set; get; }
         public object data { private set; get; }
+        public int lenght { private set; get; }
 
         public Message(ulong destiny, object data)
         {
             this.destiny = destiny;
             this.data = data;
+            this.lenght = Marshal.SizeOf(data)+8;
         }
 
         public static Message Deserialize(byte[] raw_data)

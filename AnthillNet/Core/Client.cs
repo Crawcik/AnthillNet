@@ -6,34 +6,34 @@ namespace AnthillNet.Core
     {
         private Connection Host;
         public byte TickRate { get; private set; }
-        public string HostAddress => Host.EndPoint.ToString();
+        public string HostAddress => this.Host.EndPoint.ToString();
 
         #region Setting
         private Client() { }
 
         public Client(ProtocolType type)
         {
-            Logging.LogName = "Client";
+            this.Logging.LogName = "Client";
             switch (type)
             {
                 case ProtocolType.TCP:
-                    Transport = new ClientTCP();
+                    this.Transport = new ClientTCP();
                     break;
                 case ProtocolType.UDP:
-                    Transport = new ClientUDP();
+                    this.Transport = new ClientUDP();
                     break;
                 default:
                     throw new InvalidOperationException();
             }
-            Protocol = type;
-            Transport.OnConnect += OnConnectionStabilized;
-            Transport.OnIncomingMessages += OnIncomingMessages;
+            this.Protocol = type;
+            this.Transport.OnConnect += OnConnectionStabilized;
+            this.Transport.OnIncomingMessages += OnIncomingMessages;
         }
 
         public override void Init(byte tickRate = 32)
         {
-            Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
-            TickRate = tickRate;
+            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
+            this.TickRate = tickRate;
         }
 
         public override void Stop()
@@ -46,31 +46,31 @@ namespace AnthillNet.Core
         #region Events
         private void OnConnectionStabilized(Connection connection)
         {
-            Host = connection;
-            Logging.Log($"Connected to: {connection.EndPoint}");
+            this.Host = connection;
+            this.Logging.Log($"Connected to: {connection.EndPoint}");
         }
 
         private void OnIncomingMessages(Connection connection)
         {
-            throw new NotImplementedException();
+            
         }
         #endregion
         #region Functions
         public void Connect(string address ,ushort port)
         {
-            Logging.Log($"Connecting to: {address}", LogType.Debug);
-            Transport.Start(address, port, TickRate);
+            this.Logging.Log($"Connecting to: {address}", LogType.Debug);
+            this.Transport.Start(address, port);
         }
 
         public void Send(ulong destiny, object data)
         {
-            Transport.Send(new Message(0, data));
+            this.Transport.Send(new Message(0, data), HostAddress);
         }
         #endregion
         ~Client()
         {
-            Logging.Log($"Disposing", LogType.Debug);
-            Transport.ForceStop();
+            this.Logging.Log($"Disposing", LogType.Debug);
+            this.Transport.ForceStop();
         }
     }
 }

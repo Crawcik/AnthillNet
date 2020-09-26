@@ -13,9 +13,9 @@
         public event DisconnectedHandler OnDisconnect;
         public event IncomingMessagesHandler OnRevieceMessage;
         //Invokers
-        protected void ConnectedInvoke(string address) => OnConnect?.Invoke(this, address);
-        protected void DisconnectedInvoke(string address) => OnDisconnect?.Invoke(this, address);
-        protected void IncomingMessagesInvoke(Message[] messages) => OnRevieceMessage?.Invoke(this, messages);
+        protected void ConnectedInvoke(string address) => this.OnConnect?.Invoke(this, address);
+        protected void DisconnectedInvoke(string address) => this.OnDisconnect?.Invoke(this, address);
+        protected void IncomingMessagesInvoke(Message[] messages) => this.OnRevieceMessage?.Invoke(this, messages);
 
         internal Base Transport;
         public ProtocolType Protocol;

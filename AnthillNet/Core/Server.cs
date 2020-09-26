@@ -6,26 +6,27 @@ namespace AnthillNet.Core
     public class Server : Host
     {
         public byte TickRate { get; private set; }
+        List<string> Connections = new List<string>();
 
         #region Setting
         private Server() { }
         public Server(ProtocolType type)
         {
-            Logging.LogName = "Server";
+            this.Logging.LogName = "Server";
             switch (type)
             {
                 case ProtocolType.TCP:
-                    Transport = new ServerTCP();
+                    this.Transport = new ServerTCP();
                     break;
                 case ProtocolType.UDP:
-                    Transport = new ServerUDP();
+                    this.Transport = new ServerUDP();
                     break;
                 default:
                     throw new InvalidOperationException();
             }
-            Protocol = type;
-            Transport.OnConnect += OnConnectionStabilized;
-            Transport.OnIncomingMessages += OnIncomingMessages;
+            this.Protocol = type;
+            this.Transport.OnConnect += OnConnectionStabilized;
+            this.Transport.OnIncomingMessages += OnIncomingMessages;
         }
 
         public override void Init(byte tickRate = 32)
@@ -36,7 +37,7 @@ namespace AnthillNet.Core
 
         public void Start(ushort port) {
             Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)}", LogType.Debug);
-            Transport.Start("127.0.0.1", port, TickRate);
+            Transport.Start("127.0.0.1", port);
         }
 
         public override void Stop()
@@ -49,34 +50,34 @@ namespace AnthillNet.Core
         #region Events
         private void OnConnectionStabilized(Connection connection)
         {
-            Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
+            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
         }
 
         private void OnIncomingMessages(Connection connection)
         {
-            foreach (Message message in connection.GetMessages())
-                Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
+            Message[] messages = connection.GetMessagesReceived();
+            foreach (Message message in messages)
+                this.Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
+            this.IncomingMessagesInvoke(messages);
         }
         #endregion
         #region Functions
         public void Send(ulong destiny, object data)
         {
-            /*foreach(Connection connection in Connections.Values)
-                connection.SendMessage(destiny, data);*/
+            foreach (string ip in Connections)
+                this.SendTo(destiny, data, ip);
         }
 
-        public void SendTo(string address, ulong destiny ,object data)
+        public void SendTo(ulong destiny, object data, string address)
         {
-            /*Connections[address].SendMessage(destiny, data);*/
+            this.Transport.Send(new Message(destiny, data), address);
         }
         #endregion
         ~Server()
         {
-            /*Logging.Log($"Stopping...", LogType.Debug);
-            foreach (Connection connection in Connections.Values)
-                connection.socket.Disconnect(false);
-            Transport.ForceStop();
-            Connections.Clear();*/
+            this.Logging.Log($"Stopping...", LogType.Debug);
+            this.Transport.ForceStop();
+            this.Connections.Clear();
         }
     }
 }

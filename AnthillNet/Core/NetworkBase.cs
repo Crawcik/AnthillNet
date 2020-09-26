@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 
 namespace AnthillNet.Core
@@ -29,20 +27,18 @@ namespace AnthillNet.Core
 
         public string Hostname { private set; get; }
         public ushort Port { private set; get; }
-        public byte TickRate { private set; get; }
-        public int MaxMessageSize { private set; get; } = 1024;
+        public byte TickRate { set; get; }
+        public int MaxMessageSize { set; get; } = 1024;
         public bool Active => this.Clock.IsAlive;
 
         //Controlling functionality
-        public virtual void Start(string hostname, ushort port, byte tickRate = 32)
+        public virtual void Start(string hostname, ushort port)
         {
             this.Hostname = hostname;
             this.Port = port;
-            this.TickRate = tickRate;
             this.ForceOff = false;
             this.isPause = false;
             this.Clock.Start();
-
         }
         public virtual void Stop() => this.ForceOff = true;
         public virtual void ForceStop() { this.Clock.Abort(); this.OnStop?.Invoke(); }
@@ -50,7 +46,7 @@ namespace AnthillNet.Core
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) => this.OnConnect.Invoke(connection);
         public virtual void Disconnect(Connection connection) => this.OnDisconnect.Invoke(connection);
-        public virtual void Send(Message message) { }
+        public virtual void Send(Message message, string IPAddress) { if (this.MaxMessageSize < message.lenght) throw new Exception("Message data is too big"); }
 
         //Delegates
         public delegate void TickHander();
@@ -69,13 +65,5 @@ namespace AnthillNet.Core
         //Events Invokers
         protected virtual void Tick() => this.OnTick?.Invoke();
         protected void IncomingMessagesInvoke(Connection connection) => this.OnIncomingMessages?.Invoke(connection);
-
-        public class StateObject
-        {
-            public System.Net.Sockets.Socket workSocket = null;
-            public const int BUFFER_SIZE = 1024;
-            public byte[] buffer = new byte[BUFFER_SIZE];
-            public System.Text.StringBuilder sb = new System.Text.StringBuilder();
-        }
     }
 }
