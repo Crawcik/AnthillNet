@@ -7,14 +7,21 @@ namespace AnthillNet.Core
     {
         protected Base() => Clock = new Thread(() =>
         {
-            int rest = 1;
-            while (!this.ForceOff)
+            try
             {
-                int before_tick = DateTime.Now.Millisecond;
-                if (!this.isPause)
-                    this.Tick();
-                if ((rest = this.TickRate - (DateTime.Now.Millisecond - before_tick)) > 0)
-                    Thread.Sleep(1 / rest == 0 ? TickRate : rest);
+                int rest = 1;
+                while (!this.ForceOff)
+                {
+                    int before_tick = DateTime.Now.Millisecond;
+                    if (!this.isPause)
+                        this.Tick();
+                    if ((rest = this.TickRate - (DateTime.Now.Millisecond - before_tick)) > 0)
+                        Thread.Sleep(1 / rest == 0 ? TickRate : rest);
+                }
+            } 
+            finally
+            {
+                this.ForceOff = true;
             }
             this.OnStop?.Invoke();
         })
@@ -41,18 +48,19 @@ namespace AnthillNet.Core
             this.Clock.Start();
         }
         public virtual void Stop() => this.ForceOff = true;
-        public virtual void ForceStop() { this.Clock.Abort(); this.OnStop?.Invoke(); }
+        public virtual void ForceStop() => this.Clock.Abort();
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) => this.OnConnect.Invoke(connection);
         public virtual void Disconnect(Connection connection) => this.OnDisconnect.Invoke(connection);
-        public virtual void Send(Message message, string IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) throw new Exception("Message data is too big"); }
+        public virtual void Send(Message message, string IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) InternalHostErrorInvoke(new Exception("Message data is too big")); }
 
         //Delegates
         public delegate void TickHander();
         public delegate void ConnectHandler(Connection connection);
         public delegate void DisconnectHandler(Connection connection);
         public delegate void IncomingMessagesHandler(Connection connection);
+        public delegate void InternalHostErrorHandler(Exception exception);
         public delegate void StopHandler();
 
         //Events
@@ -60,10 +68,12 @@ namespace AnthillNet.Core
         public event ConnectHandler OnConnect;
         public event DisconnectHandler OnDisconnect;
         public event IncomingMessagesHandler OnIncomingMessages;
+        public event InternalHostErrorHandler OnInternalHostError;
         public event StopHandler OnStop;
 
         //Events Invokers
         protected virtual void Tick() => this.OnTick?.Invoke();
         protected void IncomingMessagesInvoke(Connection connection) => this.OnIncomingMessages?.Invoke(connection);
+        protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(exception);
     }
 }

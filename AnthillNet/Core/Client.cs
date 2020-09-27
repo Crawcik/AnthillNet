@@ -28,6 +28,7 @@ namespace AnthillNet.Core
             this.Protocol = type;
             this.Transport.OnConnect += OnConnectionStabilized;
             this.Transport.OnIncomingMessages += OnIncomingMessages;
+            this.Transport.OnInternalHostError += OnHostError;
         }
 
         public override void Init(byte tickRate = 32)
@@ -54,6 +55,11 @@ namespace AnthillNet.Core
         {
             
         }
+        private void OnHostError(Exception exception)
+        {
+            this.Logging.Log("Internal error occured:", LogType.Error);
+            this.Logging.Log(exception.ToString(), LogType.Error);
+        }
         #endregion
         #region Functions
         public void Connect(string address ,ushort port)
@@ -67,10 +73,13 @@ namespace AnthillNet.Core
             this.Transport.Send(new Message(0, data), HostAddress);
         }
         #endregion
-        ~Client()
+
+        public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
+            this.Logging.Log($"Force stopping...", LogType.Info);
             this.Transport.ForceStop();
+            this.Transport = null;
         }
     }
 }

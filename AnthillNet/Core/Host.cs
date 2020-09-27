@@ -1,6 +1,8 @@
-﻿namespace AnthillNet.Core
+﻿using System;
+
+namespace AnthillNet.Core
 {
-    public abstract class Host
+    public abstract class Host : IDisposable
     {
         protected Host() { }
 
@@ -22,5 +24,6 @@
         public NetworkLog Logging { protected set; get; } = new NetworkLog();
         public abstract void Init(byte tickRate = 32);
         public abstract void Stop();
+        public abstract void Dispose();
     }
 }

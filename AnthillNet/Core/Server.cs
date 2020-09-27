@@ -27,6 +27,7 @@ namespace AnthillNet.Core
             this.Protocol = type;
             this.Transport.OnConnect += OnConnectionStabilized;
             this.Transport.OnIncomingMessages += OnIncomingMessages;
+            this.Transport.OnInternalHostError += OnHostError;
         }
 
         public override void Init(byte tickRate = 32)
@@ -46,6 +47,15 @@ namespace AnthillNet.Core
             Transport.Stop();
             Logging.Log($"Stopped");
         }
+
+        public override void Dispose()
+        {
+            this.Logging.Log($"Disposing", LogType.Debug);
+            this.Logging.Log($"Force stopping...", LogType.Info);
+            this.Transport.ForceStop();
+            this.Transport = null;
+            this.Connections.Clear();
+        }
         #endregion
         #region Events
         private void OnConnectionStabilized(Connection connection)
@@ -60,6 +70,12 @@ namespace AnthillNet.Core
                 this.Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
             this.IncomingMessagesInvoke(messages);
         }
+
+        private void OnHostError(Exception exception)
+        {
+            this.Logging.Log("Internal error occured:", LogType.Error);
+            this.Logging.Log(exception.ToString(), LogType.Error);
+        }
         #endregion
         #region Functions
         public void Send(ulong destiny, object data)
@@ -73,11 +89,5 @@ namespace AnthillNet.Core
             this.Transport.Send(new Message(destiny, data), address);
         }
         #endregion
-        ~Server()
-        {
-            this.Logging.Log($"Stopping...", LogType.Debug);
-            this.Transport.ForceStop();
-            this.Connections.Clear();
-        }
     }
 }

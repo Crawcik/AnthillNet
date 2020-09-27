@@ -16,6 +16,7 @@ namespace AnthillNet.Core
             this.Listener = TcpListener.Create(port);
             this.Dictionary = new Dictionary<EndPoint, Connection>();
             this.Listener.Start();
+            this.Listener.BeginAcceptSocket(WaitForConnection, null);
             base.Start(hostname, port);
         }
         public override void Stop()
@@ -33,19 +34,40 @@ namespace AnthillNet.Core
 
         protected override void Tick()
         {
-            if (this.Listener.Pending())
+            try
             {
-                Socket client = this.Listener.AcceptSocket();
+                foreach (Connection connection in this.Dictionary.Values)
+                    if (connection.MessagesCount > 0)
+                        this.IncomingMessagesInvoke(connection);
+            }
+            catch (Exception e)
+            {
+                this.InternalHostErrorInvoke(e);
+            }
+            base.Tick();
+        }
+
+        private void WaitForConnection(IAsyncResult ar)
+        {
+            try
+            {
+                Socket client = this.Listener.EndAcceptSocket(ar);
                 Connection connection = new Connection(client.RemoteEndPoint);
                 this.Dictionary.Add(client.RemoteEndPoint, connection);
                 this.Connect(connection);
                 client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, client);
+                this.Listener.BeginAcceptSocket(WaitForConnection, null);
+            } 
+            catch (Exception e)
+            {
+                this.InternalHostErrorInvoke(e);
             }
-            foreach (Connection connection in this.Dictionary.Values)
-                if (connection.MessagesCount > 0)
-                    this.IncomingMessagesInvoke(connection);
-            base.Tick();
+            finally
+            {
+                this.Listener.Server.Dispose();
+            }
         }
+
         private void WaitForMessage(IAsyncResult ar)
         {
             Socket socket = (Socket)ar.AsyncState;
@@ -55,12 +77,17 @@ namespace AnthillNet.Core
                 byte[] buffer = new byte[this.MaxMessageSize];
                 socket.Receive(buffer, buffer.Length, 0);
                 this.Dictionary[socket.RemoteEndPoint].AddReceived(Message.Deserialize(buffer));
+                socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
             }
-            catch
+            catch (Exception e)
             {
-
+                this.InternalHostErrorInvoke(e);
             }
-            socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
+            finally
+            {
+                socket.Dispose();
+                this.Dictionary.Clear();
+            }
         }
     }
 
@@ -116,13 +143,13 @@ namespace AnthillNet.Core
                 socket.EndReceive(ar);
                 byte[] buffer = new byte[this.MaxMessageSize];
                 socket.Receive(buffer, buffer.Length, 0);
-                //this.Dictionary[socket.RemoteEndPoint].AddReceived(Message.Deserialize(buffer));
+                this.connection.AddReceived(Message.Deserialize(buffer));
+                socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
             }
-            catch
+            catch (Exception e)
             {
-
+                InternalHostErrorInvoke(e);
             }
-            socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
         }
         public override void Send(Message message, string IPAddress)
         {
