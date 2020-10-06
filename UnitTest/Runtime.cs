@@ -2,8 +2,8 @@
 using System.Linq;
 using AnthillNet.Core;
 
-Test1();
-
+Test2();
+Console.ReadKey();
 /// <summary> Keys info:
 /// Q - Quit
 /// C - Send string to server as client
@@ -43,14 +43,52 @@ loop:
             client.Send(0, Console.ReadLine());
             break;
         case ConsoleKey.Q:
+            server.Dispose();
+            client.Dispose();
             return;
     }
 goto loop;
 }
 
-void OnRevieceMessage(object sender, Message[] messages)
+void Test2()
 {
-    string message = string.Join("\n", messages.Select(x => (string)x.data));
+    ushort Port = 7777;
+    byte TickRate = 32;
+    ProtocolType Protocol = ProtocolType.TCP;
+    Console.WriteLine("Press to be:\n\tS - Server\n\tAny - Client");
+    string text;
+    if (Console.ReadKey().Key == ConsoleKey.S)
+    {
+        Server server = new Server(Protocol);
+        server.Logging.LogPriority = LogType.Debug;
+        server.Logging.OnNetworkLog += OnNetworkLog;
+        server.OnRevieceMessage += OnRevieceMessage;
+        server.Init(TickRate);
+        server.Start(Port);
+        while ((text = Console.ReadLine()) != "exit")
+            server.Send(1, text);
+        server.Dispose();
+    }
+    else
+    {
+        Console.WriteLine("Server IP:");
+        string IP = Console.ReadLine();
+        Client client = new Client(ProtocolType.TCP);
+        client.Logging.LogPriority = LogType.Debug;
+        client.Logging.OnNetworkLog += OnNetworkLog;
+        client.OnRevieceMessage += OnRevieceMessage;
+        client.Init(TickRate);
+        client.Connect(IP, Port);
+        while ((text = Console.ReadLine()) != "exit")
+            client.Send(1, text);
+        client.Dispose();
+    }
+}
+
+
+void OnRevieceMessage(object sender, Connection connection)
+{
+    string message = string.Join("\n", connection.GetMessages().Select(x => (string)x.data));
     ((Host)sender).Logging.Log("Messages:\n" + message);
 }
 
