@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace AnthillNet.Core
 {
-    public class Server : Host
+    public sealed class Server : Host
     {
         public byte TickRate { get; private set; }
         List<string> Connections = new List<string>();
@@ -25,15 +25,13 @@ namespace AnthillNet.Core
                     throw new InvalidOperationException();
             }
             this.Protocol = type;
-            this.Transport.OnConnect += OnConnectionStabilized;
-            this.Transport.OnIncomingMessages += OnIncomingMessages;
-            this.Transport.OnInternalHostError += OnHostError;
         }
 
         public override void Init(byte tickRate = 32)
         {
             Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
             TickRate = tickRate;
+            base.Init(tickRate);
         }
 
         public void Start(ushort port) {
@@ -41,42 +39,31 @@ namespace AnthillNet.Core
             Transport.Start("127.0.0.1", port);
         }
 
-        public override void Stop()
+        public override void Stop(Message[] additional_packages = null)
         {
             Logging.Log($"Stopping...", LogType.Debug);
             Transport.Stop();
-            Logging.Log($"Stopped");
+            base.Stop(additional_packages);
         }
 
-        public override void Dispose()
-        {
-            this.Logging.Log($"Disposing", LogType.Debug);
-            this.Logging.Log($"Force stopping...", LogType.Info);
-            this.Transport.ForceStop();
-            this.Transport = null;
-            this.Connections.Clear();
-        }
         #endregion
+
         #region Events
-        private void OnConnectionStabilized(Connection connection)
+        protected override void OnHostConnect(Connection connection)
         {
             this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
+            base.OnHostConnect(connection);
         }
 
-        private void OnIncomingMessages(Connection connection)
+        protected override void OnIncomingMessages(Connection connection)
         {
-            Message[] messages = connection.GetMessagesReceived();
+            Message[] messages = connection.GetMessages();
             foreach (Message message in messages)
                 this.Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
-            this.IncomingMessagesInvoke(messages);
-        }
-
-        private void OnHostError(Exception exception)
-        {
-            this.Logging.Log("Internal error occured:", LogType.Error);
-            this.Logging.Log(exception.ToString(), LogType.Error);
+            base.OnIncomingMessages(connection);
         }
         #endregion
+
         #region Functions
         public void Send(ulong destiny, object data)
         {
@@ -89,5 +76,13 @@ namespace AnthillNet.Core
             this.Transport.Send(new Message(destiny, data), address);
         }
         #endregion
+        public override void Dispose()
+        {
+            this.Logging.Log($"Disposing", LogType.Debug);
+            this.Logging.Log($"Force stopping...", LogType.Info);
+            this.Transport.ForceStop();
+            this.Transport = null;
+            this.Connections.Clear();
+        }
     }
 }

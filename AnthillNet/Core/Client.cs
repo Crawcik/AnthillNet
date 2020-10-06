@@ -2,9 +2,9 @@
 
 namespace AnthillNet.Core
 {
-    public class Client : Host
+    public sealed class Client : Host
     {
-        private Connection Host;
+        public Connection Host { get; private set; }
         public byte TickRate { get; private set; }
         public string HostAddress => this.Host.EndPoint.ToString();
 
@@ -13,6 +13,7 @@ namespace AnthillNet.Core
 
         public Client(ProtocolType type)
         {
+            Host = new Connection();
             this.Logging.LogName = "Client";
             switch (type)
             {
@@ -26,41 +27,39 @@ namespace AnthillNet.Core
                     throw new InvalidOperationException();
             }
             this.Protocol = type;
-            this.Transport.OnConnect += OnConnectionStabilized;
-            this.Transport.OnIncomingMessages += OnIncomingMessages;
-            this.Transport.OnInternalHostError += OnHostError;
         }
 
         public override void Init(byte tickRate = 32)
         {
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
             this.TickRate = tickRate;
+            base.Init(tickRate);
         }
 
-        public override void Stop()
+        public override void Stop(Message[] additional_packages = null)
         {
             Logging.Log($"Stopping...", LogType.Debug);
+            if (additional_packages != null)
+                foreach (Message message in additional_packages)
+                    Transport.Send(message, HostAddress);
             Transport.Stop();
-            Logging.Log($"Stopped");
+            base.Stop();
         }
         #endregion
-        #region Events
-        private void OnConnectionStabilized(Connection connection)
-        {
-            this.Host = connection;
-            this.Logging.Log($"Connected to: {connection.EndPoint}");
-        }
 
-        private void OnIncomingMessages(Connection connection)
+        #region Events
+        protected override void OnHostConnect(Connection connection)
         {
-            
+            Host = connection;
+            base.OnHostConnect(connection);
         }
-        private void OnHostError(Exception exception)
+        protected override void OnHostDisconnect(Connection connection)
         {
-            this.Logging.Log("Internal error occured:", LogType.Error);
-            this.Logging.Log(exception.ToString(), LogType.Error);
+            Host.ClearData();
+            base.OnHostDisconnect(connection);
         }
         #endregion
+
         #region Functions
         public void Connect(string address ,ushort port)
         {
@@ -70,7 +69,7 @@ namespace AnthillNet.Core
 
         public void Send(ulong destiny, object data)
         {
-            this.Transport.Send(new Message(0, data), HostAddress);
+            this.Transport.Send(new Message(destiny, data), HostAddress);
         }
         #endregion
 

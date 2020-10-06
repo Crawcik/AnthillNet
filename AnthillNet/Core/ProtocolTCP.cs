@@ -17,8 +17,17 @@ namespace AnthillNet.Core
             this.Dictionary = new Dictionary<EndPoint, Connection>();
             this.Listener.Start();
             this.Listener.BeginAcceptSocket(WaitForConnection, null);
+            base.OnStop += OnStopped;
             base.Start(hostname, port);
         }
+
+        private void OnStopped()
+        {
+            this.Listener.Server.Dispose();
+            this.Dictionary.Clear();
+            base.OnStop -= OnStopped;
+        }
+
         public override void Stop()
         {
             if (!this.Active) return;
@@ -38,12 +47,16 @@ namespace AnthillNet.Core
             {
                 foreach (Connection connection in this.Dictionary.Values)
                     if (connection.MessagesCount > 0)
+                    {
                         this.IncomingMessagesInvoke(connection);
+                        connection.ClearMessages();
+                    }
             }
             catch (Exception e)
             {
                 this.InternalHostErrorInvoke(e);
             }
+            
             base.Tick();
         }
 
@@ -54,17 +67,13 @@ namespace AnthillNet.Core
                 Socket client = this.Listener.EndAcceptSocket(ar);
                 Connection connection = new Connection(client.RemoteEndPoint);
                 this.Dictionary.Add(client.RemoteEndPoint, connection);
-                this.Connect(connection);
+                base.Connect(connection.EndPoint);
                 client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, client);
                 this.Listener.BeginAcceptSocket(WaitForConnection, null);
             } 
             catch (Exception e)
             {
                 this.InternalHostErrorInvoke(e);
-            }
-            finally
-            {
-                this.Listener.Server.Dispose();
             }
         }
 
@@ -76,17 +85,12 @@ namespace AnthillNet.Core
                 socket.EndReceive(ar);
                 byte[] buffer = new byte[this.MaxMessageSize];
                 socket.Receive(buffer, buffer.Length, 0);
-                this.Dictionary[socket.RemoteEndPoint].AddReceived(Message.Deserialize(buffer));
+                this.Dictionary[socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
                 socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
             }
             catch (Exception e)
             {
                 this.InternalHostErrorInvoke(e);
-            }
-            finally
-            {
-                socket.Dispose();
-                this.Dictionary.Clear();
             }
         }
     }
@@ -95,15 +99,12 @@ namespace AnthillNet.Core
     {
         private TcpClient Client;
         private Connection connection;
-        private bool isConnecting;
 
         public override void Start(string hostname, ushort port)
         {
             if (this.Active) return;
             this.Client = new TcpClient();
-            IPAddress iPAddress = IPAddress.Parse(hostname);
-            this.isConnecting = true;
-            this.Client.Connect(iPAddress, port);
+            this.Client.BeginConnect(IPAddress.Parse(hostname), port, WaitForConnection, null);
             base.Start(hostname, port);
         }
         public override void Stop()
@@ -121,18 +122,31 @@ namespace AnthillNet.Core
 
         protected override void Tick()
         {
-            if (this.isConnecting)
-                if (this.Client.Connected)
-                {
-                    this.connection = new Connection(Client.Client.RemoteEndPoint);
-                    base.Connect(connection);
-                    this.Client.Client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, Client.Client);
-                    this.isConnecting = false;
-                }
             if (this.connection.EndPoint != null)
                 if (this.connection.MessagesCount > 0)
                     this.IncomingMessagesInvoke(this.connection);
             base.Tick();
+        }
+        private void OnStopped()
+        {
+            if (this.Client.Connected)
+                this.Client.Close();
+            base.OnStop -= OnStopped;
+        }
+        private void WaitForConnection(IAsyncResult ar)
+        {
+            try
+            {
+                this.Client.EndConnect(ar);
+                Socket client = this.Client.Client;
+                this.connection = new Connection(client.RemoteEndPoint);
+                client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, client);
+                base.Connect(this.connection.EndPoint);
+            }
+            catch (Exception e)
+            {
+                this.InternalHostErrorInvoke(e);
+            }
         }
 
         private void WaitForMessage(IAsyncResult ar)
@@ -143,7 +157,7 @@ namespace AnthillNet.Core
                 socket.EndReceive(ar);
                 byte[] buffer = new byte[this.MaxMessageSize];
                 socket.Receive(buffer, buffer.Length, 0);
-                this.connection.AddReceived(Message.Deserialize(buffer));
+                this.connection.Add(Message.Deserialize(buffer));
                 socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
             }
             catch (Exception e)
@@ -153,7 +167,8 @@ namespace AnthillNet.Core
         }
         public override void Send(Message message, string IPAddress)
         {
-            this.Client.Client.Send(message.Serialize());
+            byte[] buf = message.Serialize();
+            this.Client.Client.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.Client.Client.EndSend(ar), null);
         }
     }
 }

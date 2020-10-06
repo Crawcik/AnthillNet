@@ -9,21 +9,33 @@ namespace AnthillNet.Core
         //Delegates
         public delegate void ConnectedHandler(object sender, string address);
         public delegate void DisconnectedHandler(object sender, string address);
-        public delegate void IncomingMessagesHandler(object sender, Message[] messages);
+        public delegate void IncomingMessagesHandler(object sender, Connection messages);
         //Events
         public event ConnectedHandler OnConnect;
         public event DisconnectedHandler OnDisconnect;
         public event IncomingMessagesHandler OnRevieceMessage;
-        //Invokers
-        protected void ConnectedInvoke(string address) => this.OnConnect?.Invoke(this, address);
-        protected void DisconnectedInvoke(string address) => this.OnDisconnect?.Invoke(this, address);
-        protected void IncomingMessagesInvoke(Message[] messages) => this.OnRevieceMessage?.Invoke(this, messages);
-
-        internal Base Transport;
-        public ProtocolType Protocol;
+        //Properties
+        internal Base Transport { set; get; }
+        public ProtocolType Protocol { protected set; get; }
         public NetworkLog Logging { protected set; get; } = new NetworkLog();
-        public abstract void Init(byte tickRate = 32);
-        public abstract void Stop();
+        public virtual void Init(byte tickRate = 32)
+        {
+            this.Transport.OnConnect += OnHostConnect;
+            this.Transport.OnDisconnect += OnHostDisconnect;
+            this.Transport.OnTick += OnTick;
+            this.Transport.OnStop += OnStop;
+            this.Transport.OnIncomingMessages += OnIncomingMessages;
+            this.Transport.OnInternalHostError += OnHostError;
+        }
+        public virtual void Stop(Message[] additional_packages = null) => OnStop();
         public abstract void Dispose();
+
+        //Protected events
+        protected virtual void OnHostConnect(Connection connection) => this.OnConnect?.Invoke(this, connection.EndPoint.ToString());
+        protected virtual void OnHostDisconnect(Connection connection) => this.OnDisconnect?.Invoke(this, connection.EndPoint.ToString());
+        protected virtual void OnTick() { }
+        protected virtual void OnStop() => Logging.Log($"Stopped");
+        protected virtual void OnIncomingMessages(Connection connection) => this.OnRevieceMessage?.Invoke(this, connection);
+        protected virtual void OnHostError(Exception exception) => this.Logging.Log("Internal error occured: " + exception.ToString(), LogType.Error);
     }
 }
