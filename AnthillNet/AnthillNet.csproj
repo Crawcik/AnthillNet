@@ -3,5 +3,11 @@
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
+    <Authors>Crawcik</Authors>
+    <Product />
+    <Description>Universal .NET networking library</Description>
+    <Copyright>GNU General Public License v2.0</Copyright>
+    <PackageProjectUrl>https://github.com/Crawcik/AnthillNet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Crawcik/AnthillNet</RepositoryUrl>
   </PropertyGroup>
 </Project>
