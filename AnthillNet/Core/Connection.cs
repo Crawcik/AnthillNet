@@ -1,33 +1,34 @@
 ﻿using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
     public struct Connection
     {
-        public Connection(EndPoint EndPoint)
+        public Connection(IPEndPoint address)
         {
-            this.EndPoint = EndPoint as IPEndPoint;
-            this.messages_received = new List<Message>();
-            this.messages_tosend = new List<Message>();
+            this.EndPoint = address;
+            this.messages = null;
+            this.Socket = null;
+        }
+        internal Connection(Socket socket)
+        {
+            this.EndPoint = socket.RemoteEndPoint as IPEndPoint;
+            this.messages = new List<Message>();
+            this.Socket = socket;
         }
         public IPEndPoint EndPoint { private set; get; }
-        private readonly List<Message> messages_received;
-        private readonly List<Message> messages_tosend;
-        public int MessagesCount => messages_received.Count;
+        internal Socket Socket { private set; get; }
+        private readonly List<Message> messages;
 
-        public void AddReceived(Message message) => messages_received.Add(message);
-        public void AddToSend(Message message) => messages_tosend.Add(message);
-        public Message[] GetMessagesReceived()
+        public int MessagesCount => messages.Count;
+
+        internal void Add(Message message) => messages.Add(message);
+        internal void ClearMessages() => messages.Clear();
+        public Message[] GetMessages()
         {
-            Message[] results = messages_received.ToArray();
-            messages_received.Clear();
-            return results;
-        }
-        public Message[] GetMessagesToSend()
-        {
-            Message[] results = messages_received.ToArray();
-            messages_received.Clear();
+            Message[] results = messages.ToArray();
             return results;
         }
 

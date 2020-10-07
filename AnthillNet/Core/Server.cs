@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace AnthillNet.Core
 {
-    public class Server : Host
+    public sealed class Server : Host
     {
         public byte TickRate { get; private set; }
-        List<string> Connections = new List<string>();
+        List<Connection> Connections = new List<Connection>();
 
         #region Setting
         private Server() { }
@@ -25,14 +26,13 @@ namespace AnthillNet.Core
                     throw new InvalidOperationException();
             }
             this.Protocol = type;
-            this.Transport.OnConnect += OnConnectionStabilized;
-            this.Transport.OnIncomingMessages += OnIncomingMessages;
         }
 
         public override void Init(byte tickRate = 32)
         {
             Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
             TickRate = tickRate;
+            base.Init(tickRate);
         }
 
         public void Start(ushort port) {
@@ -40,43 +40,57 @@ namespace AnthillNet.Core
             Transport.Start("127.0.0.1", port);
         }
 
-        public override void Stop()
+        public override void Stop(Message[] additional_packages = null)
         {
             Logging.Log($"Stopping...", LogType.Debug);
             Transport.Stop();
-            Logging.Log($"Stopped");
-        }
-        #endregion
-        #region Events
-        private void OnConnectionStabilized(Connection connection)
-        {
-            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
+            base.Stop(additional_packages);
         }
 
-        private void OnIncomingMessages(Connection connection)
+        #endregion
+
+        #region Events
+        protected override void OnHostConnect(Connection connection)
         {
-            Message[] messages = connection.GetMessagesReceived();
+            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Info);
+            this.Connections.Add(connection);
+            base.OnHostConnect(connection);
+        }
+
+        protected override void OnHostDisconnect(Connection connection)
+        {
+            this.Logging.Log($"Client {connection.EndPoint} disconnect from server", LogType.Info);
+            this.Connections.Remove(connection);
+            base.OnHostDisconnect(connection);
+        }
+
+        protected override void OnIncomingMessages(Connection connection)
+        {
+            Message[] messages = connection.GetMessages();
             foreach (Message message in messages)
                 this.Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
-            this.IncomingMessagesInvoke(messages);
+            base.OnIncomingMessages(connection);
         }
         #endregion
+
         #region Functions
         public void Send(ulong destiny, object data)
         {
-            foreach (string ip in Connections)
-                this.SendTo(destiny, data, ip);
+            foreach (Connection ip in Connections)
+                this.SendTo(destiny, data, ip.EndPoint);
         }
 
-        public void SendTo(ulong destiny, object data, string address)
+        public void SendTo(ulong destiny, object data, IPEndPoint address)
         {
             this.Transport.Send(new Message(destiny, data), address);
         }
         #endregion
-        ~Server()
+        public override void Dispose()
         {
-            this.Logging.Log($"Stopping...", LogType.Debug);
+            this.Logging.Log($"Disposing", LogType.Debug);
+            this.Logging.Log($"Force stopping...", LogType.Info);
             this.Transport.ForceStop();
+            this.Transport = null;
             this.Connections.Clear();
         }
     }
