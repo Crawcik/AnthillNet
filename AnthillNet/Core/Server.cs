@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace AnthillNet.Core
 {
     public sealed class Server : Host
     {
         public byte TickRate { get; private set; }
-        List<string> Connections = new List<string>();
+        List<Connection> Connections = new List<Connection>();
 
         #region Setting
         private Server() { }
@@ -51,8 +52,16 @@ namespace AnthillNet.Core
         #region Events
         protected override void OnHostConnect(Connection connection)
         {
-            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Debug);
+            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Info);
+            this.Connections.Add(connection);
             base.OnHostConnect(connection);
+        }
+
+        protected override void OnHostDisconnect(Connection connection)
+        {
+            this.Logging.Log($"Client {connection.EndPoint} disconnect from server", LogType.Info);
+            this.Connections.Remove(connection);
+            base.OnHostDisconnect(connection);
         }
 
         protected override void OnIncomingMessages(Connection connection)
@@ -67,11 +76,11 @@ namespace AnthillNet.Core
         #region Functions
         public void Send(ulong destiny, object data)
         {
-            foreach (string ip in Connections)
-                this.SendTo(destiny, data, ip);
+            foreach (Connection ip in Connections)
+                this.SendTo(destiny, data, ip.EndPoint);
         }
 
-        public void SendTo(ulong destiny, object data, string address)
+        public void SendTo(ulong destiny, object data, IPEndPoint address)
         {
             this.Transport.Send(new Message(destiny, data), address);
         }

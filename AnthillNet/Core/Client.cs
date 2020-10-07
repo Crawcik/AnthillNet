@@ -41,7 +41,7 @@ namespace AnthillNet.Core
             Logging.Log($"Stopping...", LogType.Debug);
             if (additional_packages != null)
                 foreach (Message message in additional_packages)
-                    Transport.Send(message, HostAddress);
+                    Transport.Send(message, Host.EndPoint);
             Transport.Stop();
             base.Stop();
         }
@@ -55,7 +55,6 @@ namespace AnthillNet.Core
         }
         protected override void OnHostDisconnect(Connection connection)
         {
-            Host.ClearData();
             base.OnHostDisconnect(connection);
         }
         #endregion
@@ -69,7 +68,7 @@ namespace AnthillNet.Core
 
         public void Send(ulong destiny, object data)
         {
-            this.Transport.Send(new Message(destiny, data), HostAddress);
+            this.Transport.Send(new Message(destiny, data), Host.EndPoint);
         }
         #endregion
 
