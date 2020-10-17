@@ -52,11 +52,12 @@ public static class Tests
     {
         ushort Port = 7777;
         byte TickRate = 32;
-        ProtocolType Protocol = ProtocolType.TCP;
+        ProtocolType Protocol = ProtocolType.UDP;
         Console.WriteLine("Press to be:\n\tS - Server\n\tAny - Client");
         string text;
         if (Console.ReadKey().Key == ConsoleKey.S)
         {
+            Console.WriteLine();
             Server server = new Server(Protocol);
             server.Logging.LogPriority = LogType.Debug;
             server.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
@@ -69,9 +70,10 @@ public static class Tests
         }
         else
         {
-            Console.WriteLine("Server IP:");
+            Console.WriteLine("\nServer IP:");
             string IP = Console.ReadLine();
-            Client client = new Client(ProtocolType.TCP);
+            Console.WriteLine();
+            Client client = new Client(Protocol);
             client.Logging.LogPriority = LogType.Debug;
             client.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
             client.OnRevieceMessage += Fuctions.OnRevieceMessage;
