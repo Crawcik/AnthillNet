@@ -9,7 +9,7 @@ namespace AnthillNet.Core
         public Connection(IPEndPoint address)
         {
             this.EndPoint = address;
-            this.messages = null;
+            this.messages = new List<Message>();
             this.Socket = null;
         }
         internal Connection(Socket socket)

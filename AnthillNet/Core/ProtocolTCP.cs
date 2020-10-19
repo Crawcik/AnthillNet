@@ -156,7 +156,7 @@ namespace AnthillNet.Core
             }
             catch (Exception e)
             {
-                base.InternalHostErrorInvoke(e);
+                //base.InternalHostErrorInvoke(e);
             }
         }
 
@@ -175,14 +175,14 @@ namespace AnthillNet.Core
             {
                 socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
-                base.InternalHostErrorInvoke(e);
+                //base.InternalHostErrorInvoke(e);
                 base.Disconnect(connection);
             }
         }
         public override void Send(Message message, IPEndPoint IPAddress)
         {
             byte[] buf = message.Serialize();
-            this.Client.Client.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.Client.Client.EndSend(ar), null);
+            this.Client.Client.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.Client.Client.EndSend(ar, out SocketError er), null);
         }
     }
 }

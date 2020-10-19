@@ -12,7 +12,7 @@ public static class Fuctions
 
     public static void OnNetworkLog(object sender, NetworkLogArgs e)
     {
-        Console.Write($"[{e.Time}]");
+        Console.Write($"[{e.Time.ToString("HH:mm:ss")}]");
         Console.ForegroundColor = ConsoleColor.DarkBlue;
         Console.Write($"[{e.LogName}]");
         switch (e.Priority)
