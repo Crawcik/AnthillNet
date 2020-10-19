@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace AnthillNet.Core
+﻿namespace AnthillNet.Core
 {
     public delegate void NetworkLogHandler(object sender, NetworkLogArgs e);
     public class NetworkLog
@@ -20,13 +18,13 @@ namespace AnthillNet.Core
 
     public struct NetworkLogArgs
     {
-        public DateTime Time { private set; get; }
+        public System.DateTime Time { private set; get; }
         public string LogName { private set; get; }
         public LogType Priority { private set; get; }
         public string Message { private set; get; }
         public NetworkLogArgs(string sender, string message, LogType priority = LogType.Info)
         {
-            this.Time = DateTime.Now;
+            this.Time = System.DateTime.Now;
             this.LogName = sender;
             this.Priority = priority;
             this.Message = message;
