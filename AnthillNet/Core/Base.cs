@@ -36,8 +36,10 @@ namespace AnthillNet.Core
         protected Socket HostSocket;
 
         //Controlling functionality
-        public virtual void Init(ProtocolType protocol)
+        public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
+            Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
+            TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
                 HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
@@ -58,5 +60,6 @@ namespace AnthillNet.Core
         public virtual void Connect(Connection connection) => this.OnConnect.Invoke(connection);
         public virtual void Disconnect(Connection connection) => this.OnDisconnect.Invoke(connection);
         public virtual void Send(Message message, IPEndPoint IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) InternalHostErrorInvoke(new Exception("Message data is too big")); }
+        public virtual void Dispose() => this.HostSocket.Dispose();
     }
 }

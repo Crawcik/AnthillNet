@@ -26,13 +26,13 @@ namespace AnthillNet.Core
         public event TickHander OnTick;
         public event ConnectHandler OnConnect;
         public event DisconnectHandler OnDisconnect;
-        public event IncomingMessagesHandler OnIncomingMessages;
+        public event IncomingMessagesHandler OnReceiveMessages;
         public event InternalHostErrorHandler OnInternalHostError;
         public event StopHandler OnStop;
 
         //Events Invokers
         protected virtual void Tick() => this.OnTick?.Invoke();
-        protected void IncomingMessagesInvoke(Connection connection) => this.OnIncomingMessages?.Invoke(connection);
+        protected void IncomingMessagesInvoke(Connection connection) => this.OnReceiveMessages?.Invoke(connection);
         protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(exception);
     }
 }
