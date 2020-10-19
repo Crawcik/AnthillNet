@@ -102,6 +102,11 @@ namespace AnthillNet.Core
             this.Client.Close();
             base.ForceStop();
         }
+        public override void Disconnect(Connection connection)
+        {
+            base.Disconnect(connection);
+        }
+
 
         protected override void Tick()
         {
