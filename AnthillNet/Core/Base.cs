@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 
 namespace AnthillNet.Core
 {
-    internal abstract class Base
+    public abstract partial class Host
     {
-        protected Base() => Clock = new Thread(() =>
+        protected Host() => Clock = new Thread(() =>
         {
             try
             {
@@ -19,7 +20,7 @@ namespace AnthillNet.Core
                     if ((rest = this.TickRate - (DateTime.Now.Millisecond - before_tick)) > 0)
                         Thread.Sleep(1 / rest == 0 ? TickRate : rest);
                 }
-            } 
+            }
             finally
             {
                 this.ForceOff = true;
@@ -32,14 +33,16 @@ namespace AnthillNet.Core
         private readonly Thread Clock;
         private bool isPause;
         private bool ForceOff;
-
-        public string Hostname { private set; get; }
-        public ushort Port { private set; get; }
-        public byte TickRate { set; get; }
-        public int MaxMessageSize { set; get; } = 1024;
-        public bool Active => this.Clock.IsAlive;
+        protected Socket HostSocket;
 
         //Controlling functionality
+        public virtual void Init(ProtocolType protocol)
+        {
+            if (protocol == ProtocolType.TCP)
+                HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+            else if(protocol == ProtocolType.UDP)
+                HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+        }
         public virtual void Start(string hostname, ushort port)
         {
             this.Hostname = hostname;
@@ -55,26 +58,5 @@ namespace AnthillNet.Core
         public virtual void Connect(Connection connection) => this.OnConnect.Invoke(connection);
         public virtual void Disconnect(Connection connection) => this.OnDisconnect.Invoke(connection);
         public virtual void Send(Message message, IPEndPoint IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) InternalHostErrorInvoke(new Exception("Message data is too big")); }
-
-        //Delegates
-        public delegate void TickHander();
-        public delegate void ConnectHandler(Connection connection);
-        public delegate void DisconnectHandler(Connection connection);
-        public delegate void IncomingMessagesHandler(Connection connection);
-        public delegate void InternalHostErrorHandler(Exception exception);
-        public delegate void StopHandler();
-
-        //Events
-        public event TickHander OnTick;
-        public event ConnectHandler OnConnect;
-        public event DisconnectHandler OnDisconnect;
-        public event IncomingMessagesHandler OnIncomingMessages;
-        public event InternalHostErrorHandler OnInternalHostError;
-        public event StopHandler OnStop;
-
-        //Events Invokers
-        protected virtual void Tick() => this.OnTick?.Invoke();
-        protected void IncomingMessagesInvoke(Connection connection) => this.OnIncomingMessages?.Invoke(connection);
-        protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(exception);
     }
 }
