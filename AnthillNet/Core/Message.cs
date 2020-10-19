@@ -6,6 +6,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 
 namespace AnthillNet.Core
 {
+    [Serializable]
     public struct Message
     {
         public ulong destiny { private set; get; }
