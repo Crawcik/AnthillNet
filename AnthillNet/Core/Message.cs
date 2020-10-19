@@ -1,12 +1,6 @@
-﻿using System;
-using System.IO;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-
-namespace AnthillNet.Core
+﻿namespace AnthillNet.Core
 {
-    [Serializable]
+    [System.Serializable]
     public struct Message
     {
         public ulong destiny { private set; get; }
