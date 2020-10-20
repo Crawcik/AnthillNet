@@ -1,21 +1,20 @@
 ﻿using System;
+using System.Net;
 using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
     public sealed class Client : Host
     {
-
-        public Connection Host { get; private set; }
+        private Connection connection;
+        private IPEndPoint ServerEP;
 
         public override void Start(string hostname, ushort port)
         {
             if (this.Active) return;
-            this.Client = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp)
             this.ServerEP = new IPEndPoint(IPAddress.Parse(hostname), port);
             this.connection = new Connection(this.ServerEP);
-            this.Client.Connect(this.ServerEP);
-            this.Client.BeginReceive(WaitForMessage, null);
+            this.HostSocket.BeginConnect(ServerEP, WaitForConnection, null);
             base.OnStop += OnStopped;
             base.Start(hostname, port);
             base.Connect(connection);
@@ -23,26 +22,30 @@ namespace AnthillNet.Core
         public override void Stop()
         {
             if (!this.Active) return;
-            this.Client.Close();
+            Logging.Log($"Stopping...", LogType.Debug);
+            this.HostSocket.Close();
             base.Stop();
         }
         public override void ForceStop()
         {
             if (!this.Active) return;
-            this.Client.Close();
+            Logging.Log($"Force stopping...", LogType.Debug);
+            this.HostSocket.Close();
             base.ForceStop();
         }
         public override void Disconnect(Connection connection)
         {
+            Logging.Log($"Disconnected from server", LogType.Info);
+            this.HostSocket.Close();
             base.Disconnect(connection);
         }
-
 
         protected override void Tick()
         {
             if (this.connection.EndPoint != null)
                 if (this.connection.MessagesCount > 0)
                 {
+                    this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
                     base.IncomingMessagesInvoke(this.connection);
                     this.connection.ClearMessages();
                 }
@@ -50,30 +53,53 @@ namespace AnthillNet.Core
         }
         private void OnStopped()
         {
-            this.Client.Close();
+            Logging.Log($"Stopped.", LogType.Info);
             base.OnStop -= OnStopped;
+            this.HostSocket.Dispose();
         }
-        private void WaitForMessage(IAsyncResult ar)
+
+        private void WaitForConnection(IAsyncResult ar)
         {
             try
             {
-
-                byte[] buffer = this.Client.EndReceive(ar, ref this.ServerEP);
-                this.connection.Add(Message.Deserialize(buffer));
-                this.Client.BeginReceive(WaitForMessage, null);
+                HostSocket.EndConnect(ar);
+                HostSocket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, null);
+                connection = new Connection(HostSocket);
                 base.Connect(this.connection);
             }
             catch (Exception e)
             {
-                this.Client.Close();
-                //base.InternalHostErrorInvoke(e);
-                base.Disconnect(connection);
+                base.InternalHostErrorInvoke(e);
+            }
+        }
+
+        private void WaitForMessage(IAsyncResult ar)
+        {
+            try
+            {
+                HostSocket.EndReceive(ar);
+                byte[] buffer = new byte[this.MaxMessageSize];
+                HostSocket.Receive(buffer, buffer.Length, 0);
+                this.connection.Add(Message.Deserialize(buffer));
+                HostSocket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, null);
+            }
+            catch (Exception e)
+            {
+                base.InternalHostErrorInvoke(e);
+                this.Disconnect(connection);
             }
         }
         public override void Send(Message message, IPEndPoint IPAddress)
         {
             byte[] buf = message.Serialize();
-            this.Client.Client.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.Client.Client.EndSend(ar), null);
+            this.HostSocket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+        }
+
+        public override void Dispose()
+        {
+            this.Logging.Log($"Disposing", LogType.Debug);
+            this.ForceStop();
+            base.Dispose();
         }
     }
 }

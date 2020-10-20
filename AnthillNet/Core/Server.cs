@@ -33,7 +33,6 @@ namespace AnthillNet.Core
             if (!this.Active) return;
             Logging.Log($"Stopping...", LogType.Debug);
             this.HostSocket.Close();
-            this.Dictionary.Clear();
             base.Stop();
         }
         public override void ForceStop()
@@ -41,7 +40,6 @@ namespace AnthillNet.Core
             if (!this.Active) return;
             Logging.Log($"Force stopping...", LogType.Debug);
             this.HostSocket.Close();
-            this.Dictionary.Clear();
             base.ForceStop();
         }
 
