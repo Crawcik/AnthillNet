@@ -25,7 +25,7 @@ namespace AnthillNet.Core
             {
                 this.ForceOff = true;
             }
-            this.OnStop?.Invoke();
+            this.OnStop?.Invoke(this);
         })
         { IsBackground = true };
 
@@ -57,8 +57,8 @@ namespace AnthillNet.Core
         public virtual void ForceStop() => this.Clock.Abort();
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
-        public virtual void Connect(Connection connection) => this.OnConnect.Invoke(connection);
-        public virtual void Disconnect(Connection connection) => this.OnDisconnect.Invoke(connection);
+        public virtual void Connect(Connection connection) { if (OnConnect != null) this.OnConnect.Invoke(this, connection); }
+        public virtual void Disconnect(Connection connection) { if(OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
         public virtual void Send(Message message, IPEndPoint IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) InternalHostErrorInvoke(new Exception("Message data is too big")); }
         public virtual void Dispose() => this.HostSocket.Dispose();
     }

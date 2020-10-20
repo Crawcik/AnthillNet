@@ -9,6 +9,8 @@ namespace AnthillNet.Core
     {
         private Dictionary<EndPoint, Connection> Dictionary;
 
+        public Server() => this.Logging.LogName = "Server";
+
         public override void Start(string hostname, ushort port)
         {
             this.Dictionary = new Dictionary<EndPoint, Connection>();
@@ -20,7 +22,7 @@ namespace AnthillNet.Core
             base.Start(hostname, port);
         }
 
-        private void OnStopped()
+        private void OnStopped(object sender)
         {
             Logging.Log($"Stopped.", LogType.Info);
             this.Dictionary.Clear();
@@ -107,7 +109,7 @@ namespace AnthillNet.Core
             socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
         }
 
-        public void SendToAll(Message message, IPEndPoint address)
+        public void SendToAll(Message message)
         {
             foreach (Connection ip in Dictionary.Values)
                 Send(message, ip.EndPoint);

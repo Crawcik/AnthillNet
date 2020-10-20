@@ -9,6 +9,8 @@ namespace AnthillNet.Core
         private Connection connection;
         private IPEndPoint ServerEP;
 
+        public Client() => this.Logging.LogName = "Client";
+
         public override void Start(string hostname, ushort port)
         {
             if (this.Active) return;
@@ -17,7 +19,6 @@ namespace AnthillNet.Core
             this.HostSocket.BeginConnect(ServerEP, WaitForConnection, null);
             base.OnStop += OnStopped;
             base.Start(hostname, port);
-            base.Connect(connection);
         }
         public override void Stop()
         {
@@ -51,7 +52,7 @@ namespace AnthillNet.Core
                 }
             base.Tick();
         }
-        private void OnStopped()
+        private void OnStopped(object sender)
         {
             Logging.Log($"Stopped.", LogType.Info);
             base.OnStop -= OnStopped;

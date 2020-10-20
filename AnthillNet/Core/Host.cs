@@ -15,12 +15,12 @@ namespace AnthillNet.Core
         public bool Active => this.Clock.IsAlive;
 
         //Delegates
-        public delegate void TickHander();
-        public delegate void ConnectHandler(Connection connection);
-        public delegate void DisconnectHandler(Connection connection);
-        public delegate void IncomingMessagesHandler(Connection connection);
-        public delegate void InternalHostErrorHandler(Exception exception);
-        public delegate void StopHandler();
+        public delegate void TickHander(object sender);
+        public delegate void ConnectHandler(object sender, Connection connection);
+        public delegate void DisconnectHandler(object sender, Connection connection);
+        public delegate void IncomingMessagesHandler(object sender, Connection connection);
+        public delegate void InternalHostErrorHandler(object sender, Exception exception);
+        public delegate void StopHandler(object sender);
 
         //Events
         public event TickHander OnTick;
@@ -31,8 +31,8 @@ namespace AnthillNet.Core
         public event StopHandler OnStop;
 
         //Events Invokers
-        protected virtual void Tick() => this.OnTick?.Invoke();
-        protected void IncomingMessagesInvoke(Connection connection) => this.OnReceiveMessages?.Invoke(connection);
-        protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(exception);
+        protected virtual void Tick() => this.OnTick?.Invoke(this);
+        protected void IncomingMessagesInvoke(Connection connection) => this.OnReceiveMessages?.Invoke(this, connection);
+        protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(this, exception);
     }
 }
