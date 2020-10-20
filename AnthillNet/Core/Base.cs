@@ -38,6 +38,7 @@ namespace AnthillNet.Core
         //Controlling functionality
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
+            Protocol = protocol;
             Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
             TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
