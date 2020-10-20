@@ -2,22 +2,33 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 
 namespace AnthillNet.Core
 {
     public sealed class Server : Host
     {
         private Dictionary<EndPoint, Connection> Dictionary;
-
         public Server() => this.Logging.LogName = "Server";
+
+        private EndPoint lastEndPoint;
+
 
         public override void Start(string hostname, ushort port)
         {
             this.Dictionary = new Dictionary<EndPoint, Connection>();
             HostSocket.Bind(new IPEndPoint(IPAddress.Parse(hostname), port));
-            HostSocket.Listen(100);
+            if (Protocol == ProtocolType.TCP)
+            {
+                HostSocket.Listen(100);
+                this.HostSocket.BeginAccept(WaitForConnection, null);
+            }
+            else if(Protocol == ProtocolType.UDP)
+            {
+                lastEndPoint = new IPEndPoint(IPAddress.Any, port);
+                HostSocket.BeginReceiveFrom(new byte[] { }, 0, 0, 0, ref lastEndPoint, WaitForMessageFrom, null);
+            }
             Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)} protocol", LogType.Debug);
-            this.HostSocket.BeginAccept(WaitForConnection, null);
             base.OnStop += OnStopped;
             base.Start(hostname, port);
         }
@@ -78,6 +89,7 @@ namespace AnthillNet.Core
             }
             catch (Exception e)
             {
+                HostSocket.Shutdown(SocketShutdown.Both);
                 base.InternalHostErrorInvoke(e);
             }
         }
@@ -89,7 +101,7 @@ namespace AnthillNet.Core
             {
                 socket.EndReceive(ar);
                 byte[] buffer = new byte[this.MaxMessageSize];
-                socket.Receive(buffer, buffer.Length, 0);
+                socket.Receive(buffer);
                 this.Dictionary[socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
                 socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
             }
@@ -102,6 +114,27 @@ namespace AnthillNet.Core
                 base.InternalHostErrorInvoke(e);
             }
         }
+
+        private void WaitForMessageFrom(IAsyncResult ar)
+        {
+            try
+            {
+                HostSocket.EndReceiveFrom(ar, ref lastEndPoint);
+                byte[] buffer = new byte[this.MaxMessageSize];
+                HostSocket.ReceiveFrom(buffer, ref lastEndPoint);
+                if (this.Dictionary.ContainsKey(lastEndPoint))
+                    this.Dictionary[lastEndPoint].Add(Message.Deserialize(buffer));
+                else
+                    this.Dictionary.Add(lastEndPoint, new Connection(lastEndPoint as IPEndPoint));
+                HostSocket.BeginReceiveFrom(new byte[] { }, 0, 0, 0, ref lastEndPoint, WaitForMessageFrom, null);
+            }
+            catch (Exception e)
+            {
+                HostSocket.Close();
+                base.InternalHostErrorInvoke(e);
+            }
+        }
+
         public override void Send(Message message, IPEndPoint IPAddress)
         {
             byte[] buf = message.Serialize();

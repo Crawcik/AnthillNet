@@ -14,6 +14,7 @@ namespace AnthillNet.Core
         public override void Start(string hostname, ushort port)
         {
             if (this.Active) return;
+            HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(IPAddress.Parse(hostname), port);
             this.connection = new Connection(this.ServerEP);
             this.HostSocket.BeginConnect(ServerEP, WaitForConnection, null);
