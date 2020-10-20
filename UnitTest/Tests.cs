@@ -15,30 +15,30 @@ public static class Tests
         byte TickRate = byte.Parse(Console.ReadLine());
         Console.WriteLine("Protocol:");
         ProtocolType Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), Console.ReadLine());
-        Server server = new Server(Protocol);
+        Server server = new Server();
         server.Logging.LogPriority = LogType.Debug;
         server.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
-        server.OnRevieceMessage += Fuctions.OnRevieceMessage;
-        server.Init(TickRate);
-        server.Start(Port);
+        server.OnReceiveMessages += Fuctions.OnRevieceMessage;
+        server.Init(Protocol, TickRate);
+        server.Start("127.0.0.1", Port);
         Console.WriteLine("Server IP:");
         string IP = Console.ReadLine();
-        Client client = new Client(ProtocolType.TCP);
+        Client client = new Client();
         client.Logging.LogPriority = LogType.Debug;
         client.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
-        client.OnRevieceMessage += Fuctions.OnRevieceMessage;
-        client.Init(4);
-        client.Connect(IP, 7783);
+        client.OnReceiveMessages += Fuctions.OnRevieceMessage;
+        client.Init(Protocol,TickRate);
+        client.Start(IP, Port);
         loop:
         switch (Console.ReadKey().Key)
         {
             case ConsoleKey.S:
                 Console.Write("> ");
-                server.Send(0, Console.ReadLine());
+                server.SendToAll(new Message(0, Console.ReadLine()));
                 break;
             case ConsoleKey.C:
                 Console.WriteLine("> ");
-                client.Send(0, Console.ReadLine());
+                client.Send(new Message(0, Console.ReadLine()), null);
                 break;
             case ConsoleKey.Q:
                 server.Dispose();
@@ -58,14 +58,14 @@ public static class Tests
         if (Console.ReadKey().Key == ConsoleKey.S)
         {
             Console.WriteLine();
-            Server server = new Server(Protocol);
+            Server server = new Server();
             server.Logging.LogPriority = LogType.Debug;
             server.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
-            server.OnRevieceMessage += Fuctions.OnRevieceMessage;
-            server.Init(TickRate);
-            server.Start(Port);
+            server.OnReceiveMessages += Fuctions.OnRevieceMessage;
+            server.Init(Protocol, TickRate);
+            server.Start("127.0.0.1", Port) ;
             while ((text = Console.ReadLine()) != "exit")
-                server.Send(1, text);
+                server.SendToAll(new Message(0, text));
             server.Dispose();
         }
         else
@@ -73,14 +73,14 @@ public static class Tests
             Console.WriteLine("\nServer IP:");
             string IP = Console.ReadLine();
             Console.WriteLine();
-            Client client = new Client(Protocol);
+            Client client = new Client();
             client.Logging.LogPriority = LogType.Debug;
             client.Logging.OnNetworkLog += Fuctions.OnNetworkLog;
-            client.OnRevieceMessage += Fuctions.OnRevieceMessage;
-            client.Init(TickRate);
-            client.Connect(IP, Port);
+            client.OnReceiveMessages += Fuctions.OnRevieceMessage;
+            client.Init(Protocol, TickRate);
+            client.Start(IP, Port);
             while ((text = Console.ReadLine()) != "exit")
-                client.Send(1, text);
+                client.Send(new Message(0, text), null);
             client.Dispose();
         }
     }
