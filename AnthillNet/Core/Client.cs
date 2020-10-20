@@ -65,7 +65,8 @@ namespace AnthillNet.Core
             try
             {
                 HostSocket.EndConnect(ar);
-                HostSocket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, null);
+                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
+                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
                 connection = new Connection(HostSocket);
                 base.Connect(this.connection);
             }
@@ -77,13 +78,12 @@ namespace AnthillNet.Core
 
         private void WaitForMessage(IAsyncResult ar)
         {
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
             try
             {
                 HostSocket.EndReceive(ar);
-                byte[] buffer = new byte[this.MaxMessageSize];
-                HostSocket.Receive(buffer, buffer.Length, 0);
-                this.connection.Add(Message.Deserialize(buffer));
-                HostSocket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, null);
+                this.connection.Add(Message.Deserialize(stack.buffer));
+                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
             }
             catch (Exception e)
             {

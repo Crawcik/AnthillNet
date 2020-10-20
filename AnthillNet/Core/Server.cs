@@ -26,7 +26,8 @@ namespace AnthillNet.Core
             else if(Protocol == ProtocolType.UDP)
             {
                 lastEndPoint = new IPEndPoint(IPAddress.Any, port);
-                HostSocket.BeginReceiveFrom(new byte[] { }, 0, 0, 0, ref lastEndPoint, WaitForMessageFrom, null);
+                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
+                HostSocket.BeginReceiveFrom(stack.buffer, 0, stack.buffer.Length, 0, ref lastEndPoint, WaitForMessageFrom, stack);
             }
             Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)} protocol", LogType.Debug);
             base.OnStop += OnStopped;
@@ -82,9 +83,10 @@ namespace AnthillNet.Core
                 Socket client = this.HostSocket.EndAccept(ar);
                 Connection connection = new Connection(client);
                 this.Dictionary.Add(client.RemoteEndPoint, connection);
+                NetworkStack stack = new NetworkStack() { socket = client, buffer = new byte[MaxMessageSize] };
+                client.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
                 this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
                 base.Connect(connection);
-                client.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, client);
                 this.HostSocket.BeginAccept(WaitForConnection, null);
             }
             catch (Exception e)
@@ -96,37 +98,35 @@ namespace AnthillNet.Core
 
         private void WaitForMessage(IAsyncResult ar)
         {
-            Socket socket = (Socket)ar.AsyncState;
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
             try
             {
-                socket.EndReceive(ar);
+                stack.socket.EndReceive(ar);
                 byte[] buffer = new byte[this.MaxMessageSize];
-                socket.Receive(buffer);
-                this.Dictionary[socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
-                socket.BeginReceive(new byte[] { }, 0, 0, 0, WaitForMessage, socket);
+                stack.socket.Receive(buffer);
+                this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
+                stack.socket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
             }
             catch (Exception e)
             {
-                this.Logging.Log($"Client {socket.RemoteEndPoint} disconnect from server", LogType.Info);
-                this.Dictionary.Remove(socket.RemoteEndPoint);
-                socket.Shutdown(SocketShutdown.Both);
-                socket.Close();
+                this.Logging.Log($"Client {stack.socket.RemoteEndPoint} disconnect from server", LogType.Info);
+                this.Dictionary.Remove(stack.socket.RemoteEndPoint);
+                stack.socket.Shutdown(SocketShutdown.Both);
+                stack.socket.Close();
                 base.InternalHostErrorInvoke(e);
             }
         }
 
         private void WaitForMessageFrom(IAsyncResult ar)
         {
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
             try
             {
                 HostSocket.EndReceiveFrom(ar, ref lastEndPoint);
-                byte[] buffer = new byte[this.MaxMessageSize];
-                HostSocket.ReceiveFrom(buffer, ref lastEndPoint);
-                if (this.Dictionary.ContainsKey(lastEndPoint))
-                    this.Dictionary[lastEndPoint].Add(Message.Deserialize(buffer));
-                else
+                if (!this.Dictionary.ContainsKey(lastEndPoint))
                     this.Dictionary.Add(lastEndPoint, new Connection(lastEndPoint as IPEndPoint));
-                HostSocket.BeginReceiveFrom(new byte[] { }, 0, 0, 0, ref lastEndPoint, WaitForMessageFrom, null);
+                this.Dictionary[lastEndPoint].Add(Message.Deserialize(stack.buffer));
+                HostSocket.BeginReceiveFrom(stack.buffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, stack);
             }
             catch (Exception e)
             {
@@ -138,8 +138,15 @@ namespace AnthillNet.Core
         public override void Send(Message message, IPEndPoint IPAddress)
         {
             byte[] buf = message.Serialize();
-            Socket socket = this.Dictionary[IPAddress].Socket;
-            socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+            if (Protocol == ProtocolType.TCP)
+            {
+                Socket socket = this.Dictionary[IPAddress].Socket;
+                socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+            }
+            else if(Protocol == ProtocolType.UDP)
+            {
+                HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress,(IAsyncResult ar) => HostSocket.EndSend(ar), null);
+            }
         }
 
         public void SendToAll(Message message)
