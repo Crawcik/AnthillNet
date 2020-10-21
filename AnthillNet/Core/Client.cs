@@ -1,83 +1,107 @@
 ﻿using System;
+using System.Net;
+using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
     public sealed class Client : Host
     {
-        public Connection Host { get; private set; }
-        public byte TickRate { get; private set; }
-        public string HostAddress => this.Host.EndPoint.ToString();
+        private Connection connection;
+        private IPEndPoint ServerEP;
 
-        #region Setting
-        private Client() { }
+        public Client() => this.Logging.LogName = "Client";
 
-        public Client(ProtocolType type)
+        public override void Start(string hostname, ushort port)
         {
-            Host = new Connection();
-            this.Logging.LogName = "Client";
-            switch (type)
-            {
-                case ProtocolType.TCP:
-                    this.Transport = new ClientTCP();
-                    break;
-                case ProtocolType.UDP:
-                    this.Transport = new ClientUDP();
-                    break;
-                default:
-                    throw new InvalidOperationException();
-            }
-            this.Protocol = type;
+            if (this.Active) return;
+            HostSocket.EnableBroadcast = true;
+            this.ServerEP = new IPEndPoint(IPAddress.Parse(hostname), port);
+            this.connection = new Connection(this.ServerEP);
+            this.HostSocket.BeginConnect(ServerEP, WaitForConnection, null);
+            base.OnStop += OnStopped;
+            base.Start(hostname, port);
         }
-
-        public override void Init(byte tickRate = 32)
+        public override void Stop()
         {
-            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
-            this.TickRate = tickRate;
-            base.Init(tickRate);
-        }
-
-        public override void Stop(Message[] additional_packages = null)
-        {
+            if (!this.Active) return;
             Logging.Log($"Stopping...", LogType.Debug);
-            if (additional_packages != null)
-                foreach (Message message in additional_packages)
-                    Transport.Send(message, Host.EndPoint);
-            Transport.Stop();
+            this.HostSocket.Close();
             base.Stop();
         }
-        #endregion
-
-        #region Events
-        protected override void OnHostConnect(Connection connection)
+        public override void ForceStop()
         {
-            Host = connection;
-            base.OnHostConnect(connection);
+            if (!this.Active) return;
+            Logging.Log($"Force stopping...", LogType.Debug);
+            this.HostSocket.Close();
+            base.ForceStop();
         }
-        protected override void OnHostDisconnect(Connection connection)
+        public override void Disconnect(Connection connection)
         {
-            base.OnHostDisconnect(connection);
-        }
-        #endregion
-
-        #region Functions
-        public void Connect(string address ,ushort port)
-        {
-            this.Logging.Log($"Connecting to: {address}", LogType.Debug);
-            this.Transport.Start(address, port);
+            Logging.Log($"Disconnected from server", LogType.Info);
+            this.HostSocket.Close();
+            base.Disconnect(connection);
         }
 
-        public void Send(ulong destiny, object data)
+        protected override void Tick()
         {
-            this.Transport.Send(new Message(destiny, data), Host.EndPoint);
+            if (this.connection.EndPoint != null)
+                if (this.connection.MessagesCount > 0)
+                {
+                    this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
+                    base.IncomingMessagesInvoke(this.connection);
+                    this.connection.ClearMessages();
+                }
+            base.Tick();
         }
-        #endregion
+        private void OnStopped(object sender)
+        {
+            Logging.Log($"Stopped.", LogType.Info);
+            base.OnStop -= OnStopped;
+            this.HostSocket.Dispose();
+        }
+
+        private void WaitForConnection(IAsyncResult ar)
+        {
+            try
+            {
+                HostSocket.EndConnect(ar);
+                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
+                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+                connection = new Connection(HostSocket);
+                base.Connect(this.connection);
+            }
+            catch (Exception e)
+            {
+                base.InternalHostErrorInvoke(e);
+            }
+        }
+
+        private void WaitForMessage(IAsyncResult ar)
+        {
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
+            try
+            {
+                HostSocket.EndReceive(ar);
+                this.connection.Add(Message.Deserialize(stack.buffer));
+                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+            }
+            catch (Exception e)
+            {
+                base.InternalHostErrorInvoke(e);
+                this.Disconnect(connection);
+            }
+        }
+        public override void Send(Message message, IPEndPoint IPAddress)
+        {
+            byte[] buf = message.Serialize();
+            this.HostSocket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+        }
 
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
-            this.Logging.Log($"Force stopping...", LogType.Info);
-            this.Transport.ForceStop();
-            this.Transport = null;
+            this.ForceStop();
+            base.Dispose();
         }
     }
 }

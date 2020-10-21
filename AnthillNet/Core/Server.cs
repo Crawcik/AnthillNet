@@ -1,97 +1,165 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 
 namespace AnthillNet.Core
 {
     public sealed class Server : Host
     {
-        public byte TickRate { get; private set; }
-        List<Connection> Connections = new List<Connection>();
+        private Dictionary<EndPoint, Connection> Dictionary;
+        public Server() => this.Logging.LogName = "Server";
 
-        #region Setting
-        private Server() { }
-        public Server(ProtocolType type)
+        private EndPoint lastEndPoint;
+
+
+        public override void Start(string hostname, ushort port)
         {
-            this.Logging.LogName = "Server";
-            switch (type)
+            this.Dictionary = new Dictionary<EndPoint, Connection>();
+            HostSocket.Bind(new IPEndPoint(IPAddress.Parse(hostname), port));
+            if (Protocol == ProtocolType.TCP)
             {
-                case ProtocolType.TCP:
-                    this.Transport = new ServerTCP();
-                    break;
-                case ProtocolType.UDP:
-                    this.Transport = new ServerUDP();
-                    break;
-                default:
-                    throw new InvalidOperationException();
+                HostSocket.Listen(100);
+                this.HostSocket.BeginAccept(WaitForConnection, null);
             }
-            this.Protocol = type;
+            else if(Protocol == ProtocolType.UDP)
+            {
+                lastEndPoint = new IPEndPoint(IPAddress.Any, port);
+                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
+                HostSocket.BeginReceiveFrom(stack.buffer, 0, stack.buffer.Length, 0, ref lastEndPoint, WaitForMessageFrom, stack);
+            }
+            Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)} protocol", LogType.Debug);
+            base.OnStop += OnStopped;
+            base.Start(hostname, port);
         }
 
-        public override void Init(byte tickRate = 32)
+        private void OnStopped(object sender)
         {
-            Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
-            TickRate = tickRate;
-            base.Init(tickRate);
+            Logging.Log($"Stopped.", LogType.Info);
+            this.Dictionary.Clear();
+            base.OnStop -= OnStopped;
+            this.HostSocket.Dispose();
         }
 
-        public void Start(ushort port) {
-            Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)}", LogType.Debug);
-            Transport.Start("127.0.0.1", port);
-        }
-
-        public override void Stop(Message[] additional_packages = null)
+        public override void Stop()
         {
+            if (!this.Active) return;
             Logging.Log($"Stopping...", LogType.Debug);
-            Transport.Stop();
-            base.Stop(additional_packages);
+            this.HostSocket.Close();
+            base.Stop();
         }
-
-        #endregion
-
-        #region Events
-        protected override void OnHostConnect(Connection connection)
+        public override void ForceStop()
         {
-            this.Logging.Log($"Client {connection.EndPoint} connected", LogType.Info);
-            this.Connections.Add(connection);
-            base.OnHostConnect(connection);
+            if (!this.Active) return;
+            Logging.Log($"Force stopping...", LogType.Debug);
+            this.HostSocket.Close();
+            base.ForceStop();
         }
 
-        protected override void OnHostDisconnect(Connection connection)
+        protected override void Tick()
         {
-            this.Logging.Log($"Client {connection.EndPoint} disconnect from server", LogType.Info);
-            this.Connections.Remove(connection);
-            base.OnHostDisconnect(connection);
+            try
+            {
+                foreach (Connection connection in this.Dictionary.Values)
+                    if (connection.MessagesCount > 0)
+                    {
+                        this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
+                        base.IncomingMessagesInvoke(connection);
+                        connection.ClearMessages();
+                    }
+            }
+            catch (Exception e)
+            {
+                base.InternalHostErrorInvoke(e);
+            }
+            base.Tick();
         }
 
-        protected override void OnIncomingMessages(Connection connection)
+        private void WaitForConnection(IAsyncResult ar)
         {
-            Message[] messages = connection.GetMessages();
-            foreach (Message message in messages)
-                this.Logging.Log($"Message from {connection.EndPoint}: {(string)message.data}", LogType.Debug);
-            base.OnIncomingMessages(connection);
+            try
+            {
+                Socket client = this.HostSocket.EndAccept(ar);
+                Connection connection = new Connection(client);
+                this.Dictionary.Add(client.RemoteEndPoint, connection);
+                NetworkStack stack = new NetworkStack() { socket = client, buffer = new byte[MaxMessageSize] };
+                client.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+                this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
+                base.Connect(connection);
+                this.HostSocket.BeginAccept(WaitForConnection, null);
+            }
+            catch (Exception e)
+            {
+                HostSocket.Shutdown(SocketShutdown.Both);
+                base.InternalHostErrorInvoke(e);
+            }
         }
-        #endregion
 
-        #region Functions
-        public void Send(ulong destiny, object data)
+        private void WaitForMessage(IAsyncResult ar)
         {
-            foreach (Connection ip in Connections)
-                this.SendTo(destiny, data, ip.EndPoint);
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
+            try
+            {
+                stack.socket.EndReceive(ar);
+                byte[] buffer = new byte[this.MaxMessageSize];
+                stack.socket.Receive(buffer);
+                this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
+                stack.socket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+            }
+            catch (Exception e)
+            {
+                this.Logging.Log($"Client {stack.socket.RemoteEndPoint} disconnect from server", LogType.Info);
+                this.Dictionary.Remove(stack.socket.RemoteEndPoint);
+                stack.socket.Shutdown(SocketShutdown.Both);
+                stack.socket.Close();
+                base.InternalHostErrorInvoke(e);
+            }
         }
 
-        public void SendTo(ulong destiny, object data, IPEndPoint address)
+        private void WaitForMessageFrom(IAsyncResult ar)
         {
-            this.Transport.Send(new Message(destiny, data), address);
+            NetworkStack stack = (NetworkStack)ar.AsyncState;
+            try
+            {
+                HostSocket.EndReceiveFrom(ar, ref lastEndPoint);
+                if (!this.Dictionary.ContainsKey(lastEndPoint))
+                    this.Dictionary.Add(lastEndPoint, new Connection(lastEndPoint as IPEndPoint));
+                this.Dictionary[lastEndPoint].Add(Message.Deserialize(stack.buffer));
+                HostSocket.BeginReceiveFrom(stack.buffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, stack);
+            }
+            catch (Exception e)
+            {
+                HostSocket.Close();
+                base.InternalHostErrorInvoke(e);
+            }
         }
-        #endregion
+
+        public override void Send(Message message, IPEndPoint IPAddress)
+        {
+            byte[] buf = message.Serialize();
+            if (Protocol == ProtocolType.TCP)
+            {
+                Socket socket = this.Dictionary[IPAddress].Socket;
+                socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+            }
+            else if(Protocol == ProtocolType.UDP)
+            {
+                HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress,(IAsyncResult ar) => HostSocket.EndSend(ar), null);
+            }
+        }
+
+        public void SendToAll(Message message)
+        {
+            foreach (Connection ip in Dictionary.Values)
+                Send(message, ip.EndPoint);
+        }
+
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
-            this.Logging.Log($"Force stopping...", LogType.Info);
-            this.Transport.ForceStop();
-            this.Transport = null;
-            this.Connections.Clear();
+            this.ForceStop();
+            base.Dispose();
         }
     }
 }
