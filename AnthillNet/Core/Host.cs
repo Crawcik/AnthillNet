@@ -32,7 +32,16 @@ namespace AnthillNet.Core
 
         //Events Invokers
         protected virtual void Tick() => this.OnTick?.Invoke(this);
-        protected void IncomingMessagesInvoke(Connection connection) => this.OnReceiveMessages?.Invoke(this, connection);
-        protected void InternalHostErrorInvoke(Exception exception) => this.OnInternalHostError?.Invoke(this, exception);
+        protected void IncomingMessagesInvoke(Connection connection) {
+            this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
+            if (this.OnReceiveMessages != null)
+                this.OnReceiveMessages?.Invoke(this, connection);
+        }
+        protected void InternalHostErrorInvoke(Exception exception) 
+        {
+            this.Logging.Log(exception.Message);
+            if (this.OnInternalHostError != null)
+                this.OnInternalHostError?.Invoke(this, exception);
+        }
     }
 }

@@ -64,7 +64,6 @@ namespace AnthillNet.Core
                 foreach (Connection connection in this.Dictionary.Values)
                     if (connection.MessagesCount > 0)
                     {
-                        this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
                         base.IncomingMessagesInvoke(connection);
                         connection.ClearMessages();
                     }
@@ -102,9 +101,7 @@ namespace AnthillNet.Core
             try
             {
                 stack.socket.EndReceive(ar);
-                byte[] buffer = new byte[this.MaxMessageSize];
-                stack.socket.Receive(buffer);
-                this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(buffer));
+                this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(stack.buffer));
                 stack.socket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
             }
             catch (Exception e)
@@ -138,21 +135,35 @@ namespace AnthillNet.Core
         public override void Send(Message message, IPEndPoint IPAddress)
         {
             byte[] buf = message.Serialize();
+            if (this.MaxMessageSize > buf.Length)
+                SendOperation(buf, IPAddress);
+            else
+                InternalHostErrorInvoke(new Exception("Message data is too big!"));
+
+        }
+
+        private void SendOperation(byte[] buf, IPEndPoint IPAddress)
+        {
             if (Protocol == ProtocolType.TCP)
             {
                 Socket socket = this.Dictionary[IPAddress].Socket;
                 socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
             }
-            else if(Protocol == ProtocolType.UDP)
+            else if (Protocol == ProtocolType.UDP)
             {
-                HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress,(IAsyncResult ar) => HostSocket.EndSend(ar), null);
+                HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress, (IAsyncResult ar) => HostSocket.EndSend(ar), null);
             }
         }
 
         public void SendToAll(Message message)
         {
-            foreach (Connection ip in Dictionary.Values)
-                Send(message, ip.EndPoint);
+            byte[] buf = message.Serialize();
+            if (this.MaxMessageSize > buf.Length)
+                foreach (Connection ip in Dictionary.Values)
+                    SendOperation(buf, ip.EndPoint);
+            else
+                InternalHostErrorInvoke(new Exception("Message data is too big!"));
+            
         }
 
         public override void Dispose()

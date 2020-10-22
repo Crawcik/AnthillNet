@@ -39,10 +39,6 @@ namespace AnthillNet.Core
             {
                 new BinaryFormatter().Serialize(stream, value);
             }
-            catch (SerializationException e)
-            {
-                throw e;
-            }
             finally
             {
                 stream.Close();
