@@ -60,7 +60,7 @@ namespace AnthillNet.Core
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) { if (OnConnect != null) this.OnConnect.Invoke(this, connection); }
         public virtual void Disconnect(Connection connection) { if(OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
-        public virtual void Send(Message message, IPEndPoint IPAddress) { if (this.MaxMessageSize < message.Serialize().Length) InternalHostErrorInvoke(new Exception("Message data is too big")); }
+        public virtual void Send(Message message, IPEndPoint IPAddress) { }
         public virtual void Dispose() => this.HostSocket.Dispose();
     }
 }

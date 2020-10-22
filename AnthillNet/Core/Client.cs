@@ -14,7 +14,8 @@ namespace AnthillNet.Core
         public override void Start(string hostname, ushort port)
         {
             if (this.Active) return;
-            HostSocket.EnableBroadcast = true;
+            if(Protocol == ProtocolType.UDP)
+                HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(IPAddress.Parse(hostname), port);
             this.connection = new Connection(this.ServerEP);
             this.HostSocket.BeginConnect(ServerEP, WaitForConnection, null);
@@ -47,7 +48,6 @@ namespace AnthillNet.Core
             if (this.connection.EndPoint != null)
                 if (this.connection.MessagesCount > 0)
                 {
-                    this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
                     base.IncomingMessagesInvoke(this.connection);
                     this.connection.ClearMessages();
                 }
