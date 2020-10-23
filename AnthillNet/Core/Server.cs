@@ -17,7 +17,8 @@ namespace AnthillNet.Core
         public override void Start(string hostname, ushort port)
         {
             this.Dictionary = new Dictionary<EndPoint, Connection>();
-            HostSocket.Bind(new IPEndPoint(IPAddress.Parse(hostname), port));
+            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(hostname), port);
+            HostSocket.Bind(endPoint);
             if (Protocol == ProtocolType.TCP)
             {
                 HostSocket.Listen(100);
@@ -26,8 +27,9 @@ namespace AnthillNet.Core
             else if(Protocol == ProtocolType.UDP)
             {
                 lastEndPoint = new IPEndPoint(IPAddress.Any, port);
-                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
-                HostSocket.BeginReceiveFrom(stack.buffer, 0, stack.buffer.Length, 0, ref lastEndPoint, WaitForMessageFrom, stack);
+                Connection stack = new Connection(endPoint);
+                stack.TempBuffer = new byte[MaxMessageSize];
+                HostSocket.BeginReceiveFrom(stack.TempBuffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, stack);
             }
             Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), Protocol)} protocol", LogType.Debug);
             base.OnStop += OnStopped;
@@ -57,6 +59,19 @@ namespace AnthillNet.Core
             base.ForceStop();
         }
 
+        public override void Disconnect(Connection connection)
+        {
+            if (Protocol == ProtocolType.TCP)
+            {
+                connection.Socket.Shutdown(SocketShutdown.Both);
+                connection.Socket.Close();
+            }
+            this.Dictionary.Remove(connection.EndPoint);
+            this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Info);
+            connection = new Connection();
+            base.Disconnect(connection);
+        }
+
         public override void Tick()
         {
             foreach (Connection connection in this.Dictionary.Values)
@@ -74,9 +89,9 @@ namespace AnthillNet.Core
             {
                 Socket client = this.HostSocket.EndAccept(ar);
                 Connection connection = new Connection(client);
+                connection.TempBuffer = new byte[MaxMessageSize];
                 this.Dictionary.Add(client.RemoteEndPoint, connection);
-                NetworkStack stack = new NetworkStack() { socket = client, buffer = new byte[MaxMessageSize] };
-                client.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+                client.BeginReceive(connection.TempBuffer, 0, MaxMessageSize, 0, WaitForMessage, connection);
                 this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
                 base.Connect(connection);
                 this.HostSocket.BeginAccept(WaitForConnection, null);
@@ -90,19 +105,18 @@ namespace AnthillNet.Core
 
         private void WaitForMessage(IAsyncResult ar)
         {
-            NetworkStack stack = (NetworkStack)ar.AsyncState;
+            Connection connection = (Connection)ar.AsyncState;
             try
             {
-                stack.socket.EndReceive(ar);
-                this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(stack.buffer));
-                stack.socket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+                connection.Socket.EndReceive(ar);
+                connection.Add(Message.Deserialize(connection.TempBuffer));
+                connection.Socket.BeginReceive(connection.TempBuffer, 0, MaxMessageSize, 0, WaitForMessage, connection);
             }
             catch (SocketException)
             {
-                this.Logging.Log($"Client {stack.socket.RemoteEndPoint} disconnect from server", LogType.Info);
-                this.Dictionary.Remove(stack.socket.RemoteEndPoint);
-                stack.socket.Shutdown(SocketShutdown.Both);
-                stack.socket.Close();
+                this.Logging.Log($"Client {connection.Socket.RemoteEndPoint} disconnected", LogType.Info);
+                this.Dictionary.Remove(connection.Socket.RemoteEndPoint);
+                this.Disconnect(connection);
             }
             catch (ObjectDisposedException e)
             {
@@ -112,14 +126,17 @@ namespace AnthillNet.Core
 
         private void WaitForMessageFrom(IAsyncResult ar)
         {
-            NetworkStack stack = (NetworkStack)ar.AsyncState;
+            Connection connection = (Connection)ar.AsyncState;
             try
             {
                 HostSocket.EndReceiveFrom(ar, ref lastEndPoint);
                 if (!this.Dictionary.ContainsKey(lastEndPoint))
+                {
                     this.Dictionary.Add(lastEndPoint, new Connection(lastEndPoint as IPEndPoint));
-                this.Dictionary[lastEndPoint].Add(Message.Deserialize(stack.buffer));
-                HostSocket.BeginReceiveFrom(stack.buffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, stack);
+                    this.Logging.Log($"Client {lastEndPoint} connected", LogType.Info);
+                }
+                connection.Add(Message.Deserialize(connection.TempBuffer));
+                HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, connection);
             }
             catch (SocketException)
             {

@@ -41,6 +41,7 @@ namespace AnthillNet.Core
         {
             Logging.Log($"Disconnected from server", LogType.Info);
             this.HostSocket.Close();
+            connection = new Connection();
             base.Disconnect(connection);
         }
 
@@ -65,10 +66,10 @@ namespace AnthillNet.Core
         {
             try
             {
-                HostSocket.EndConnect(ar);
-                NetworkStack stack = new NetworkStack() { buffer = new byte[MaxMessageSize] };
-                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
-                connection = new Connection(HostSocket);
+                this.HostSocket.EndConnect(ar);
+                this.connection = new Connection(HostSocket);
+                this.connection.TempBuffer = new byte[MaxMessageSize];
+                this.HostSocket.BeginReceive(connection.TempBuffer, 0, MaxMessageSize, 0, WaitForMessage, null);
                 this.Logging.Log("Connected to " + ServerEP);
                 base.Connect(this.connection);
             }
@@ -80,12 +81,11 @@ namespace AnthillNet.Core
 
         private void WaitForMessage(IAsyncResult ar)
         {
-            NetworkStack stack = (NetworkStack)ar.AsyncState;
             try
             {
-                HostSocket.EndReceive(ar);
-                this.connection.Add(Message.Deserialize(stack.buffer));
-                HostSocket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
+                this.HostSocket.EndReceive(ar);
+                this.connection.Add(Message.Deserialize(connection.TempBuffer));
+                this.HostSocket.BeginReceive(connection.TempBuffer, 0, MaxMessageSize, 0, WaitForMessage, null);
             }
             catch (Exception e)
             {
@@ -101,7 +101,7 @@ namespace AnthillNet.Core
                 if (this.MaxMessageSize > buf.Length)
                     this.HostSocket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
                 else
-                    InternalHostErrorInvoke(new Exception("Message data is too big!"));
+                    base.InternalHostErrorInvoke(new Exception("Message data is too big!"));
             }
             catch (Exception e)
             {
