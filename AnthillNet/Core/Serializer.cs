@@ -6,18 +6,23 @@ namespace AnthillNet.Core
 {
     public delegate byte[] Serializer(Message value);
     public delegate Message Deserializer(byte[] data);
+
     public class Serialization
     {
+        #region Properies / Serialization methods
         public static Serializer Serializer { internal get; set; }
         public static Deserializer Deserializer { internal get; set; }
+        #endregion
 
         static Serialization() => SetDefault();
+
         public static void SetDefault()
         {
             Serializer = new Serializer(DefaultSerializer);
             Deserializer = new Deserializer(DefaultDeserializer);
         }
 
+        #region Default serialization methods
         private static Message DefaultDeserializer(byte[] data)
         {
             Message message;
@@ -25,13 +30,12 @@ namespace AnthillNet.Core
             {
                 message = (Message)new BinaryFormatter().Deserialize(new MemoryStream(data));
             }
-            catch (SerializationException e)
+            catch
             {
-                throw e;
+                message = new Message();
             }
             return message;
         }
-
         private static byte[] DefaultSerializer(Message value)
         {
             MemoryStream stream = new MemoryStream();
@@ -45,5 +49,6 @@ namespace AnthillNet.Core
             }
             return stream.ToArray();
         }
+        #endregion
     }
 }

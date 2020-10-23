@@ -20,22 +20,25 @@ namespace AnthillNet.Core
             this.Socket = socket;
             this.TempBuffer = null;
         }
+
+        #region Properties
+        public int MessagesCount => this.messages.Count;
         public IPEndPoint EndPoint { private set; get; }
         internal Socket Socket { private set; get; }
         internal byte[] TempBuffer { set; get; }
+        #endregion
 
         private List<Message> messages;
 
-        public int MessagesCount => messages.Count;
-
-        internal void Add(Message message) => messages.Add(message);
-        internal void ClearMessages() => messages.Clear();
+        #region Methods
+        internal void Add(Message message) => this.messages.Add(message);
+        internal void ClearMessages() => this.messages.Clear();
 
         public Message[] GetMessages()
         {
-            Message[] results = messages.ToArray();
+            Message[] results = this.messages.ToArray();
             return results;
         }
-
+        #endregion
     }
 }
