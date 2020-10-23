@@ -33,8 +33,9 @@
 
     public enum LogType
     {
-        Info,
-        Error,
-        Debug
+        Info = 0,
+        Error = 10,
+        Warning = 20,
+        Debug = 30,
     }
 }
