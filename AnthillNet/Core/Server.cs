@@ -57,21 +57,14 @@ namespace AnthillNet.Core
             base.ForceStop();
         }
 
-        protected override void Tick()
+        public override void Tick()
         {
-            try
-            {
-                foreach (Connection connection in this.Dictionary.Values)
-                    if (connection.MessagesCount > 0)
-                    {
-                        base.IncomingMessagesInvoke(connection);
-                        connection.ClearMessages();
-                    }
-            }
-            catch (Exception e)
-            {
-                base.InternalHostErrorInvoke(e);
-            }
+            foreach (Connection connection in this.Dictionary.Values)
+                if (connection.MessagesCount > 0)
+                {
+                    base.IncomingMessagesInvoke(connection);
+                    connection.ClearMessages();
+                }
             base.Tick();
         }
 
@@ -90,8 +83,8 @@ namespace AnthillNet.Core
             }
             catch (Exception e)
             {
-                HostSocket.Shutdown(SocketShutdown.Both);
-                base.InternalHostErrorInvoke(e);
+                if (e is SocketException)
+                    base.InternalHostErrorInvoke(e);
             }
         }
 
@@ -104,12 +97,15 @@ namespace AnthillNet.Core
                 this.Dictionary[stack.socket.RemoteEndPoint].Add(Message.Deserialize(stack.buffer));
                 stack.socket.BeginReceive(stack.buffer, 0, MaxMessageSize, 0, WaitForMessage, stack);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
                 this.Logging.Log($"Client {stack.socket.RemoteEndPoint} disconnect from server", LogType.Info);
                 this.Dictionary.Remove(stack.socket.RemoteEndPoint);
                 stack.socket.Shutdown(SocketShutdown.Both);
                 stack.socket.Close();
+            }
+            catch (ObjectDisposedException e)
+            {
                 base.InternalHostErrorInvoke(e);
             }
         }
@@ -125,9 +121,12 @@ namespace AnthillNet.Core
                 this.Dictionary[lastEndPoint].Add(Message.Deserialize(stack.buffer));
                 HostSocket.BeginReceiveFrom(stack.buffer, 0, MaxMessageSize, 0, ref lastEndPoint, WaitForMessageFrom, stack);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
                 HostSocket.Close();
+            }
+            catch(ObjectDisposedException e)
+            {
                 base.InternalHostErrorInvoke(e);
             }
         }
@@ -138,20 +137,27 @@ namespace AnthillNet.Core
             if (this.MaxMessageSize > buf.Length)
                 SendOperation(buf, IPAddress);
             else
-                InternalHostErrorInvoke(new Exception("Message data is too big!"));
+                base.InternalHostErrorInvoke(new Exception("Message data is too big!"));
 
         }
 
         private void SendOperation(byte[] buf, IPEndPoint IPAddress)
         {
-            if (Protocol == ProtocolType.TCP)
+            try
             {
-                Socket socket = this.Dictionary[IPAddress].Socket;
-                socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+                if (Protocol == ProtocolType.TCP)
+                {
+                    Socket socket = this.Dictionary[IPAddress].Socket;
+                    socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+                }
+                else if (Protocol == ProtocolType.UDP)
+                {
+                    HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress, (IAsyncResult ar) => HostSocket.EndSend(ar), null);
+                }
             }
-            else if (Protocol == ProtocolType.UDP)
+            catch (Exception e)
             {
-                HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress, (IAsyncResult ar) => HostSocket.EndSend(ar), null);
+                base.InternalHostErrorInvoke(e);
             }
         }
 
@@ -163,7 +169,6 @@ namespace AnthillNet.Core
                     SendOperation(buf, ip.EndPoint);
             else
                 InternalHostErrorInvoke(new Exception("Message data is too big!"));
-            
         }
 
         public override void Dispose()

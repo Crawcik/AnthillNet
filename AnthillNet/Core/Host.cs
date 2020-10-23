@@ -31,7 +31,6 @@ namespace AnthillNet.Core
         public event StopHandler OnStop;
 
         //Events Invokers
-        protected virtual void Tick() => this.OnTick?.Invoke(this);
         protected void IncomingMessagesInvoke(Connection connection) {
             this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
             if (this.OnReceiveMessages != null)
@@ -39,7 +38,7 @@ namespace AnthillNet.Core
         }
         protected void InternalHostErrorInvoke(Exception exception) 
         {
-            this.Logging.Log(exception.Message);
+            this.Logging.Log(exception.Message, LogType.Error);
             if (this.OnInternalHostError != null)
                 this.OnInternalHostError?.Invoke(this, exception);
         }
