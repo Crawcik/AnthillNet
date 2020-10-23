@@ -34,11 +34,11 @@ public static class Tests
         {
             case ConsoleKey.S:
                 Console.Write("> ");
-                server.SendToAll(new Message(0, Console.ReadLine()));
+                server.SendToAll(new Message("text", Console.ReadLine()));
                 break;
             case ConsoleKey.C:
                 Console.WriteLine("> ");
-                client.Send(new Message(0, Console.ReadLine()), null);
+                client.Send(new Message("text", Console.ReadLine()), null);
                 break;
             case ConsoleKey.Q:
                 server.Dispose();
@@ -70,7 +70,7 @@ public static class Tests
             server.Init(Protocol, TickRate);
             server.Start(IP, Port) ;
             while ((text = Console.ReadLine()) != "exit")
-                server.SendToAll(new Message(0, text));
+                server.SendToAll(new Message("text", text));
             server.Dispose();
         }
         else
@@ -82,7 +82,7 @@ public static class Tests
             client.Init(Protocol, TickRate);
             client.Start(IP, Port);
             while ((text = Console.ReadLine()) != "exit")
-                client.Send(new Message(0, text), null);
+                client.Send(new Message("text", text), null);
             client.Dispose();
         }
     }

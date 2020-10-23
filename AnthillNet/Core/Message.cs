@@ -3,10 +3,10 @@
     [System.Serializable]
     public struct Message
     {
-        public ulong destiny { private set; get; }
+        public string destiny { private set; get; }
         public object data { private set; get; }
 
-        public Message(ulong destiny, object data)
+        public Message(string destiny, object data)
         {
             this.destiny = destiny;
             this.data = data;
