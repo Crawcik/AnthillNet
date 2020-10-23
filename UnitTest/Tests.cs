@@ -56,10 +56,9 @@ public static class Tests
         byte TickRate = byte.Parse(Console.ReadLine());
         Console.WriteLine("Protocol:");
         ProtocolType Protocol = (ProtocolType)Enum.Parse(typeof(ProtocolType), Console.ReadLine());
-        Console.WriteLine("Press to be:\n\tS - Server\n\tAny - Client");
         Console.WriteLine("\nServer IP:");
         string IP = Console.ReadLine();
-        Console.WriteLine();
+        Console.WriteLine("Press to be:\n\tS - Server\n\tAny - Client");
         string text;
         if (Console.ReadKey().Key == ConsoleKey.S)
         {
