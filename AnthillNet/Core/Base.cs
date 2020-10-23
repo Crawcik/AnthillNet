@@ -29,22 +29,23 @@ namespace AnthillNet.Core
         })
         { IsBackground = true };
 
-        //Variables
+        #region Variables
         private readonly Thread Clock;
         private bool isPause;
         private bool ForceOff;
         protected Socket HostSocket;
+        #endregion
 
-        //Controlling functionality
+        #region Controlling functionality
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
-            Protocol = protocol;
-            Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
-            TickRate = tickRate;
+            this.Protocol = protocol;
+            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
+            this.TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
-                HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                this.HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
-                HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+                this.HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
         public virtual void Start(string hostname, ushort port)
         {
@@ -59,9 +60,10 @@ namespace AnthillNet.Core
         public virtual void ForceStop() => this.Clock.Abort();
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
-        public virtual void Connect(Connection connection) { if (OnConnect != null) this.OnConnect.Invoke(this, connection); }
-        public virtual void Disconnect(Connection connection) { if(OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
+        public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
+        public virtual void Disconnect(Connection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
         public virtual void Send(Message message, IPEndPoint IPAddress) { }
         public virtual void Dispose() => this.HostSocket.Dispose();
+        #endregion
     }
 }

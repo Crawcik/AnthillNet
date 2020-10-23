@@ -1,6 +1,7 @@
 ﻿namespace AnthillNet.Core
 {
     public delegate void NetworkLogHandler(object sender, NetworkLogArgs e);
+
     public class NetworkLog
     {
         public string LogName;
@@ -11,8 +12,8 @@
 
         public void Log(string message, LogType priority = LogType.Info)
         {
-            if ((int)priority <= (int)LogPriority)
-                OnNetworkLog?.Invoke(this, new NetworkLogArgs(LogName, message, priority));
+            if ((int)priority <= (int)this.LogPriority)
+                this.OnNetworkLog?.Invoke(this, new NetworkLogArgs(this.LogName, message, priority));
         }
     }
 
