@@ -11,14 +11,14 @@ namespace AnthillNet.Core
         {
             try
             {
-                int rest = 1;
+                double rest;
                 while (!this.ForceOff)
                 {
-                    int before_tick = DateTime.Now.Millisecond;
+                    DateTime before_tick = DateTime.Now;
                     if (!this.isPause)
                         this.Tick();
-                    if ((rest = this.TickRate - (DateTime.Now.Millisecond - before_tick)) > 0)
-                        Thread.Sleep(1 / rest == 0 ? TickRate : rest);
+                    if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
+                        Thread.Sleep((int)rest);
                 }
             }
             finally
@@ -55,6 +55,7 @@ namespace AnthillNet.Core
             this.Clock.Start();
         }
         public virtual void Stop() => this.ForceOff = true;
+        public virtual void Tick() => this.OnTick?.Invoke(this);
         public virtual void ForceStop() => this.Clock.Abort();
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
