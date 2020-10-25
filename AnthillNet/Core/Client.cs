@@ -3,7 +3,7 @@ using System.Net;
 
 namespace AnthillNet.Core
 {
-    public sealed class Client : Host
+    public sealed class Client : Base
     {
         private Connection connection;
         private IPEndPoint ServerEP;

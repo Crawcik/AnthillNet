@@ -1,6 +1,6 @@
 ﻿namespace AnthillNet.Core
 {
-    public abstract partial class Host
+    public abstract partial class Base
     {
         #region Properties
         public ProtocolType Protocol { protected set; get; }

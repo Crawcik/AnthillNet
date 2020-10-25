@@ -5,9 +5,9 @@ using System.Threading;
 
 namespace AnthillNet.Core
 {
-    public abstract partial class Host
+    public abstract partial class Base
     {
-        protected Host() => Clock = new Thread(() =>
+        protected Base() => Clock = new Thread(() =>
         {
             try
             {

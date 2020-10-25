@@ -5,7 +5,7 @@ using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
-    public sealed class Server : Host
+    public sealed class Server : Base
     {
         private Dictionary<EndPoint, Connection> Dictionary;
         private EndPoint LastEndPoint;
