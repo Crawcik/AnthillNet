@@ -20,7 +20,6 @@ namespace AnthillNet.Core
             this.ServerEP = new IPEndPoint(ip, port);
             this.connection = new Connection(this.ServerEP);
             this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
-            base.OnStop += OnStopped;
             base.Start(ip, port);
         }
         public override void Stop()
@@ -73,12 +72,6 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
-        private void OnStopped(object sender)
-        {
-            this.Logging.Log($"Stopped", LogType.Info);
-            base.OnStop -= OnStopped;
-            this.HostSocket.Dispose();
-        }
 
         private void WaitForConnection(IAsyncResult ar)
         {

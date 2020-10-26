@@ -5,12 +5,12 @@ using System.Net;
 
 namespace AnthillNet
 {
-    public class Host
+    public class Host : IDisposable
     {
         #region Properties
         public Base Transport { private set; get; }
         public HostType Type { private set; get; }
-        public HostSettings Settings { private set; get; }
+        public HostSettings Settings { set; get; }
         #endregion
 
         #region Initializers
@@ -29,11 +29,12 @@ namespace AnthillNet
                 MaxConnections = 0,
                 MaxDataSize = 4096,
                 TickRate = 8,
-                WriteLogsToConsole = false,
+                WriteLogsToConsole = true,
                 Protocol = ProtocolType.TCP,
                 LogPriority = LogType.Error
             };
-            
+            this.Transport.OnStop += OnStopped;
+            this.Transport.OnReceiveData += OnRevieceMessage;
         }
         #endregion
 
@@ -47,7 +48,6 @@ namespace AnthillNet
                 this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             else
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
-            this.Transport.OnReceiveData += OnRevieceMessage;
             this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
@@ -60,7 +60,7 @@ namespace AnthillNet
             if (this.Transport.Active)
                 this.Transport.Stop();
             else
-                this.Transport.Logging.Log($"{this.Settings.Name} is already stopped", LogType.Info);
+                this.Transport.Logging.Log($"{this.Transport.Logging.LogName} is already stopped", LogType.Info);
         }
         public void SendTo(Message message, string connection)
         {
@@ -103,9 +103,20 @@ namespace AnthillNet
             }
             else this.Transport.Logging.Log("Message data is too big!", LogType.Error);
         }
+        public void Dispose()
+        {
+            if (this.Transport.Active)
+                this.Transport.ForceStop();
+            this.Transport.Dispose();
+        }
         #endregion
 
         #region Private methods
+        private void OnStopped(object sender)
+        {
+            this.Transport.Logging.Log($"Stopped", LogType.Info);
+            this.Transport.Dispose();
+        }
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
             Console.Write($"[{e.Time:HH:mm:ss}]");

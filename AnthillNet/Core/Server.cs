@@ -30,7 +30,6 @@ namespace AnthillNet.Core
                 this.HostSocket.BeginReceiveFrom(stack.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
             }
             this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
-            base.OnStop += OnStopped;
             base.Start(ip, port);
         }
         public override void Stop()
@@ -94,6 +93,7 @@ namespace AnthillNet.Core
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
+            this.Dictionary.Clear();
             this.ForceStop();
             base.Dispose();
         }
@@ -103,7 +103,7 @@ namespace AnthillNet.Core
         private void OnStopped(object sender)
         {
             this.Logging.Log($"Stopped.", LogType.Info);
-            this.Dictionary.Clear();
+            
             base.OnStop -= OnStopped;
             this.HostSocket.Dispose();
         }
