@@ -4,6 +4,9 @@ namespace AnthillNet
 {
     public struct HostSettings
     {
+        //Usefull for have logs for multiple server
+        public string Name;
+
         //How many times in second host will check & read data from connections
         public byte TickRate;
 

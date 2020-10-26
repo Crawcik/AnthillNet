@@ -25,6 +25,7 @@ namespace AnthillNet
             };
             this.Settings = new HostSettings()
             {
+                Name = null,
                 MaxConnections = 0,
                 MaxDataSize = 4096,
                 TickRate = 8,
@@ -40,7 +41,9 @@ namespace AnthillNet
         public void Start(string hostname, ushort port)
         {
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
-            if(Settings.WriteLogsToConsole)
+            if (this.Settings.Name != null)
+                this.Transport.Logging.LogName = this.Settings.Name;
+            if (this.Settings.WriteLogsToConsole)
                 this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             else
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
@@ -53,6 +56,14 @@ namespace AnthillNet
         }
 
         public void Start(ushort port) => this.Start("127.0.0.1", port);
+
+        public void Stop() 
+        {
+            if (this.Transport.Active)
+                this.Transport.Stop();
+            else
+                this.Transport.Logging.Log($"{this.Settings.Name} is already stopped", LogType.Info);
+        }
         #endregion
 
         #region Private methods
