@@ -94,7 +94,7 @@ namespace AnthillNet.Core
             byte[] buf = message.Serialize();
             if (this.MaxMessageSize > buf.Length)
                 foreach (Connection ip in this.Dictionary.Values)
-                    this.SendOperation(buf, ip.EndPoint);
+                    this.Send(buf, ip.EndPoint);
             else
                 this.InternalHostErrorInvoke(new Exception("Message data is too big!"));
         }
@@ -139,7 +139,7 @@ namespace AnthillNet.Core
             try
             {
                 connection.Socket.EndReceive(ar);
-                connection.Add(Message.Deserialize(connection.TempBuffer));
+                connection.Add(connection.TempBuffer);
                 connection.Socket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
             }
             catch (SocketException)
@@ -164,7 +164,7 @@ namespace AnthillNet.Core
                     this.Dictionary.Add(this.LastEndPoint, new Connection(this.LastEndPoint as IPEndPoint));
                     this.Logging.Log($"Client {this.LastEndPoint} connected", LogType.Info);
                 }
-                connection.Add(Message.Deserialize(connection.TempBuffer));
+                connection.Add(connection.TempBuffer);
                 HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
             catch (SocketException)
@@ -175,10 +175,6 @@ namespace AnthillNet.Core
             {
                 base.InternalHostErrorInvoke(e);
             }
-        }
-        private void SendOperation(byte[] buf, IPEndPoint IPAddress)
-        {
-            
         }
         #endregion
     }

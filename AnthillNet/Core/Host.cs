@@ -16,7 +16,7 @@
         public delegate void TickHander(object sender);
         public delegate void ConnectHandler(object sender, Connection connection);
         public delegate void DisconnectHandler(object sender, Connection connection);
-        public delegate void IncomingMessagesHandler(object sender, Connection connection);
+        public delegate void IncomingMessagesHandler(object sender, Packet[] packets);
         public delegate void InternalHostErrorHandler(object sender, System.Exception exception);
         public delegate void StopHandler(object sender);
         #endregion
@@ -34,7 +34,8 @@
         protected void IncomingMessagesInvoke(Connection connection) {
             this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
             if (this.OnReceiveMessages != null)
-                this.OnReceiveMessages?.Invoke(this, connection);
+                this.OnReceiveMessages?.Invoke(this, connection.GetMessages());
+            connection.ClearMessages();
         }
         protected void InternalHostErrorInvoke(System.Exception exception) 
         {

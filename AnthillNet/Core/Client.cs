@@ -53,15 +53,11 @@ namespace AnthillNet.Core
                 }
             base.Tick();
         }
-        public override void Send(Message message, IPEndPoint IPAddress)
+        public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {
             try
             {
-                byte[] buf = message.Serialize();
-                if (this.MaxMessageSize > buf.Length)
-                    this.HostSocket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
-                else
-                    base.InternalHostErrorInvoke(new Exception("Message data is too big!"));
+                this.HostSocket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
             }
             catch (Exception e)
             {
@@ -106,7 +102,7 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceive(ar);
-                this.connection.Add(Message.Deserialize(connection.TempBuffer));
+                this.connection.Add(connection.TempBuffer);
                 this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
             catch (Exception e)
