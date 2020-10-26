@@ -3,7 +3,6 @@
     public enum HostType
     {
         Server,
-        Client,
-        Both
+        Client
     }
 }

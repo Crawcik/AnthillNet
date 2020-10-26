@@ -54,15 +54,54 @@ namespace AnthillNet
                 return;
             this.Transport.Start(ip, port);
         }
-
         public void Start(ushort port) => this.Start("127.0.0.1", port);
-
         public void Stop() 
         {
             if (this.Transport.Active)
                 this.Transport.Stop();
             else
                 this.Transport.Logging.Log($"{this.Settings.Name} is already stopped", LogType.Info);
+        }
+        public void SendTo(Message message, string connection)
+        {
+            byte[] buf = message.Serialize();
+            if (this.Settings.MaxDataSize > buf.Length)
+            {
+                if (this.Type == HostType.Server)
+                {
+                    Server server = this.Transport as Server;
+                    if(server.Dictionary.ContainsKey(connection))
+                        this.Transport.Send(buf, server.Dictionary[connection].EndPoint);
+                    else
+                        this.Transport.Logging.Log($"Client {connection} isn't connected!", LogType.Warning);
+
+                }
+                else if (this.Type == HostType.Client)
+                {
+                    this.Transport.Send(buf, null);
+                }
+            }
+            else this.Transport.Logging.Log("Message data is too big!", LogType.Error);
+        }
+
+        public void Send(Message message)
+        {
+            byte[] buf = message.Serialize();
+            if (this.Settings.MaxDataSize > buf.Length)
+            {
+                if (this.Type == HostType.Server)
+                {
+                    Server server = this.Transport as Server;
+                    foreach (Connection ip in server.Dictionary.Values)
+                        this.Transport.Send(buf, ip.EndPoint);
+
+                }
+                else if(this.Type == HostType.Client)
+                {
+                    this.Transport.Send(buf, null);
+                }
+            }
+            else this.Transport.Logging.Log("Message data is too big!", LogType.Error);
         }
         #endregion
 

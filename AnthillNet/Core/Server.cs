@@ -7,7 +7,7 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        private Dictionary<EndPoint, Connection> Dictionary;
+        internal readonly Dictionary<string, Connection> Dictionary;
         private EndPoint LastEndPoint;
 
         public Server() => this.Logging.LogName = "Server";
@@ -15,7 +15,7 @@ namespace AnthillNet.Core
         #region Public methods
         public override void Start(IPAddress ip, ushort port)
         {
-            this.Dictionary = new Dictionary<EndPoint, Connection>();
+            this.Dictionary = new Dictionary<string, Connection>();
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             this.HostSocket.Bind(endPoint);
             if (this.Protocol == ProtocolType.TCP)
@@ -54,7 +54,7 @@ namespace AnthillNet.Core
                 connection.Socket.Shutdown(SocketShutdown.Both);
                 connection.Socket.Close();
             }
-            this.Dictionary.Remove(connection.EndPoint);
+            this.Dictionary.Remove(connection.EndPoint.ToString());
             this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Info);
             connection = new Connection();
             base.Disconnect(connection);
@@ -75,7 +75,7 @@ namespace AnthillNet.Core
             {
                 if (this.Protocol == ProtocolType.TCP)
                 {
-                    Socket socket = this.Dictionary[IPAddress].Socket;
+                    Socket socket = this.Dictionary[IPAddress.ToString()].Socket;
                     socket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
                 }
                 else if (this.Protocol == ProtocolType.UDP)
@@ -88,15 +88,6 @@ namespace AnthillNet.Core
                 base.InternalHostErrorInvoke(e);
             }
 
-        }
-        public void SendToAll(Message message)
-        {
-            byte[] buf = message.Serialize();
-            if (this.MaxMessageSize > buf.Length)
-                foreach (Connection ip in this.Dictionary.Values)
-                    this.Send(buf, ip.EndPoint);
-            else
-                this.InternalHostErrorInvoke(new Exception("Message data is too big!"));
         }
         public override void Dispose()
         {
@@ -121,7 +112,7 @@ namespace AnthillNet.Core
                 Socket client = this.HostSocket.EndAccept(ar);
                 Connection connection = new Connection(client);
                 connection.TempBuffer = new byte[this.MaxMessageSize];
-                this.Dictionary.Add(client.RemoteEndPoint, connection);
+                this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
                 client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
                 this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
                 base.Connect(connection);
@@ -145,7 +136,7 @@ namespace AnthillNet.Core
             catch (SocketException)
             {
                 this.Logging.Log($"Client {connection.Socket.RemoteEndPoint} disconnected", LogType.Info);
-                this.Dictionary.Remove(connection.Socket.RemoteEndPoint);
+                this.Dictionary.Remove(connection.Socket.RemoteEndPoint.ToString());
                 this.Disconnect(connection);
             }
             catch (ObjectDisposedException e)
@@ -159,9 +150,9 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceiveFrom(ar, ref this.LastEndPoint);
-                if (!this.Dictionary.ContainsKey(this.LastEndPoint))
+                if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
                 {
-                    this.Dictionary.Add(this.LastEndPoint, new Connection(this.LastEndPoint as IPEndPoint));
+                    this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
                     this.Logging.Log($"Client {this.LastEndPoint} connected", LogType.Info);
                 }
                 connection.Add(connection.TempBuffer);
