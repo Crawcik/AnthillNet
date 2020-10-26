@@ -36,8 +36,9 @@ namespace AnthillNet.Core
         {
             if (!this.Active) return;
             this.Logging.Log($"Stopping...", LogType.Debug);
-            foreach (Connection connection in this.Dictionary.Values)
-                connection.Socket.Close();
+            if(Protocol == ProtocolType.TCP)
+                foreach (Connection connection in this.Dictionary.Values)
+                    connection.Socket.Close();
             this.HostSocket.Close();
             base.Stop();
         }
@@ -164,9 +165,9 @@ namespace AnthillNet.Core
             {
                 this.HostSocket.Close();
             }
-            catch(ObjectDisposedException e)
+            catch(ObjectDisposedException)
             {
-                base.InternalHostErrorInvoke(e);
+           
             }
         }
         #endregion
