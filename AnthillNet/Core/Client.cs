@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
@@ -38,7 +39,6 @@ namespace AnthillNet.Core
         }
         public override void Disconnect(Connection connection)
         {
-            this.Logging.Log($"Disconnected from server", LogType.Info);
             this.HostSocket.Close();
             connection = new Connection();
             base.Disconnect(connection);
@@ -105,9 +105,14 @@ namespace AnthillNet.Core
                 this.connection.Add(connection.TempBuffer);
                 this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
-                base.InternalHostErrorInvoke(e);
+                this.Logging.Log($"{connection.EndPoint} closed connection ", LogType.Warning);
+                this.Disconnect(connection);
+            }
+            catch (ObjectDisposedException)
+            {
+                this.Logging.Log($"Disconnected from {connection.EndPoint}", LogType.Debug);
                 this.Disconnect(connection);
             }
         }

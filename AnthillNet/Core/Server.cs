@@ -7,7 +7,7 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        internal readonly Dictionary<string, Connection> Dictionary;
+        internal Dictionary<string, Connection> Dictionary;
         private EndPoint LastEndPoint;
 
         public Server() => this.Logging.LogName = "Server";
@@ -37,6 +37,8 @@ namespace AnthillNet.Core
         {
             if (!this.Active) return;
             this.Logging.Log($"Stopping...", LogType.Debug);
+            foreach (Connection connection in this.Dictionary.Values)
+                connection.Socket.Close();
             this.HostSocket.Close();
             base.Stop();
         }
@@ -135,13 +137,13 @@ namespace AnthillNet.Core
             }
             catch (SocketException)
             {
-                this.Logging.Log($"Client {connection.Socket.RemoteEndPoint} disconnected", LogType.Info);
-                this.Dictionary.Remove(connection.Socket.RemoteEndPoint.ToString());
+                this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Warning);
+                this.Dictionary.Remove(connection.EndPoint.ToString());
                 this.Disconnect(connection);
             }
-            catch (ObjectDisposedException e)
+            catch (ObjectDisposedException)
             {
-                base.InternalHostErrorInvoke(e);
+                this.Logging.Log($"Server has disconnected {connection.EndPoint} ", LogType.Debug);
             }
         }
         private void WaitForMessageFrom(IAsyncResult ar)

@@ -40,7 +40,7 @@ namespace AnthillNet.Core
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
             this.Protocol = protocol;
-            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
+            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
                 this.HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
@@ -54,6 +54,7 @@ namespace AnthillNet.Core
             this.ForceOff = false;
             this.isPause = false;
             this.Clock.Start();
+            this.Logging.Log($"Started at {port} port", LogType.Info);
         }
         public virtual void Stop() => this.ForceOff = true;
         public virtual void Tick() => this.OnTick?.Invoke(this);
