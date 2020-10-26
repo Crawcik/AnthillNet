@@ -101,13 +101,6 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
-        private void OnStopped(object sender)
-        {
-            this.Logging.Log($"Stopped.", LogType.Info);
-            
-            base.OnStop -= OnStopped;
-            this.HostSocket.Dispose();
-        }
         private void WaitForConnection(IAsyncResult ar)
         {
             try
