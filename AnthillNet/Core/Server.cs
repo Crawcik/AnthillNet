@@ -13,10 +13,10 @@ namespace AnthillNet.Core
         public Server() => this.Logging.LogName = "Server";
 
         #region Public methods
-        public override void Start(string hostname, ushort port)
+        public override void Start(IPAddress ip, ushort port)
         {
             this.Dictionary = new Dictionary<EndPoint, Connection>();
-            IPEndPoint endPoint = new IPEndPoint(IPAddress.Parse(hostname), port);
+            IPEndPoint endPoint = new IPEndPoint(ip, port);
             this.HostSocket.Bind(endPoint);
             if (this.Protocol == ProtocolType.TCP)
             {
@@ -31,7 +31,7 @@ namespace AnthillNet.Core
             }
             this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
             base.OnStop += OnStopped;
-            base.Start(hostname, port);
+            base.Start(ip, port);
         }
         public override void Stop()
         {
@@ -69,13 +69,24 @@ namespace AnthillNet.Core
                 }
             base.Tick();
         }
-        public override void Send(Message message, IPEndPoint IPAddress)
+        public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {
-            byte[] buf = message.Serialize();
-            if (this.MaxMessageSize > buf.Length)
-                this.SendOperation(buf, IPAddress);
-            else
-                base.InternalHostErrorInvoke(new Exception("Message data is too big!"));
+            try
+            {
+                if (this.Protocol == ProtocolType.TCP)
+                {
+                    Socket socket = this.Dictionary[IPAddress].Socket;
+                    socket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+                }
+                else if (this.Protocol == ProtocolType.UDP)
+                {
+                    this.HostSocket.BeginSendTo(buffer, 0, buffer.Length, 0, IPAddress, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+                }
+            }
+            catch (Exception e)
+            {
+                base.InternalHostErrorInvoke(e);
+            }
 
         }
         public void SendToAll(Message message)
@@ -167,22 +178,7 @@ namespace AnthillNet.Core
         }
         private void SendOperation(byte[] buf, IPEndPoint IPAddress)
         {
-            try
-            {
-                if (this.Protocol == ProtocolType.TCP)
-                {
-                    Socket socket = this.Dictionary[IPAddress].Socket;
-                    socket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
-                }
-                else if (this.Protocol == ProtocolType.UDP)
-                {
-                    this.HostSocket.BeginSendTo(buf, 0, buf.Length, 0, IPAddress, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
-                }
-            }
-            catch (Exception e)
-            {
-                base.InternalHostErrorInvoke(e);
-            }
+            
         }
         #endregion
     }

@@ -5,7 +5,7 @@
         #region Properties
         public ProtocolType Protocol { protected set; get; }
         public NetworkLog Logging { protected set; get; } = new NetworkLog();
-        public string Hostname { private set; get; }
+        public System.Net.IPAddress HostIP { private set; get; }
         public ushort Port { private set; get; }
         public byte TickRate { set; get; }
         public int MaxMessageSize { set; get; } = 1024;
