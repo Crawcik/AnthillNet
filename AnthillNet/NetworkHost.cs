@@ -49,7 +49,24 @@ namespace AnthillNet
 
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
-            
+            Console.Write($"[{e.Time.ToString("HH:mm:ss")}]");
+            Console.ForegroundColor = ConsoleColor.DarkBlue;
+            Console.Write($"[{e.LogName}]");
+            switch (e.Priority)
+            {
+                case LogType.Info:
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    break;
+                case LogType.Error:
+                    Console.ForegroundColor = ConsoleColor.DarkRed;
+                    break;
+                case LogType.Debug:
+                    Console.ForegroundColor = ConsoleColor.DarkYellow;
+                    break;
+            }
+            Console.Write($"[{e.Priority}]");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.Write($"{e.Message}\n");
         }
 
         private void OnRevieceMessage(object sender, Packet[] packets)
