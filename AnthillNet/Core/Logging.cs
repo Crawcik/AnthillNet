@@ -6,7 +6,7 @@
     {
         public string LogName;
 
-        public LogType LogPriority = LogType.Error;
+        public LogType LogPriority = LogType.Info;
 
         public event NetworkLogHandler OnNetworkLog;
 
