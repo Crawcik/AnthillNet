@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
-    public sealed class Client : Host
+    public sealed class Client : Base
     {
         private Connection connection;
         private IPEndPoint ServerEP;
@@ -11,16 +12,15 @@ namespace AnthillNet.Core
         public Client() => this.Logging.LogName = "Client";
 
         #region Public methods
-        public override void Start(string hostname, ushort port)
+        public override void Start(IPAddress ip, ushort port)
         {
             if (this.Active) return;
             if(this.Protocol == ProtocolType.UDP)
                 this.HostSocket.EnableBroadcast = true;
-            this.ServerEP = new IPEndPoint(IPAddress.Parse(hostname), port);
+            this.ServerEP = new IPEndPoint(ip, port);
             this.connection = new Connection(this.ServerEP);
             this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
-            base.OnStop += OnStopped;
-            base.Start(hostname, port);
+            base.Start(ip, port);
         }
         public override void Stop()
         {
@@ -38,7 +38,6 @@ namespace AnthillNet.Core
         }
         public override void Disconnect(Connection connection)
         {
-            this.Logging.Log($"Disconnected from server", LogType.Info);
             this.HostSocket.Close();
             connection = new Connection();
             base.Disconnect(connection);
@@ -53,15 +52,11 @@ namespace AnthillNet.Core
                 }
             base.Tick();
         }
-        public override void Send(Message message, IPEndPoint IPAddress)
+        public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {
             try
             {
-                byte[] buf = message.Serialize();
-                if (this.MaxMessageSize > buf.Length)
-                    this.HostSocket.BeginSend(buf, 0, buf.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
-                else
-                    base.InternalHostErrorInvoke(new Exception("Message data is too big!"));
+                this.HostSocket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
             }
             catch (Exception e)
             {
@@ -77,12 +72,6 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
-        private void OnStopped(object sender)
-        {
-            this.Logging.Log($"Stopped", LogType.Info);
-            base.OnStop -= OnStopped;
-            this.HostSocket.Dispose();
-        }
 
         private void WaitForConnection(IAsyncResult ar)
         {
@@ -106,12 +95,17 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceive(ar);
-                this.connection.Add(Message.Deserialize(connection.TempBuffer));
+                this.connection.Add(connection.TempBuffer);
                 this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
-            catch (Exception e)
+            catch (SocketException)
             {
-                base.InternalHostErrorInvoke(e);
+                this.Logging.Log($"{connection.EndPoint} closed connection ", LogType.Warning);
+                this.Disconnect(connection);
+            }
+            catch (ObjectDisposedException)
+            {
+                this.Logging.Log($"Disconnected from {connection.EndPoint}", LogType.Debug);
                 this.Disconnect(connection);
             }
         }

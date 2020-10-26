@@ -9,14 +9,14 @@ namespace AnthillNet.Core
         public Connection(IPEndPoint address)
         {
             this.EndPoint = address;
-            this.messages = new List<Message>();
+            this.messages = new List<Packet>();
             this.Socket = null;
             this.TempBuffer = null;
         }
         internal Connection(Socket socket)
         {
             this.EndPoint = socket.RemoteEndPoint as IPEndPoint;
-            this.messages = new List<Message>();
+            this.messages = new List<Packet>();
             this.Socket = socket;
             this.TempBuffer = null;
         }
@@ -28,17 +28,12 @@ namespace AnthillNet.Core
         internal byte[] TempBuffer { set; get; }
         #endregion
 
-        private List<Message> messages;
+        private readonly List<Packet> messages;
 
         #region Methods
-        internal void Add(Message message) => this.messages.Add(message);
+        internal void Add(byte[] message) => this.messages.Add(new Packet(this,message));
         internal void ClearMessages() => this.messages.Clear();
-
-        public Message[] GetMessages()
-        {
-            Message[] results = this.messages.ToArray();
-            return results;
-        }
+        public Packet[] GetMessages() => this.messages.ToArray();
         #endregion
     }
 }

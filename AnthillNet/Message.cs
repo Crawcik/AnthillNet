@@ -1,10 +1,10 @@
-﻿namespace AnthillNet.Core
+﻿namespace AnthillNet
 {
     [System.Serializable]
     public struct Message
     {
-        public string destiny { private set; get; }
-        public object data { private set; get; }
+        public readonly string destiny;
+        public readonly object data;
 
         public Message(string destiny, object data)
         {

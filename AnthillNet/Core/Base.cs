@@ -5,9 +5,9 @@ using System.Threading;
 
 namespace AnthillNet.Core
 {
-    public abstract partial class Host
+    public abstract partial class Base
     {
-        protected Host() => Clock = new Thread(() =>
+        protected Base() => Clock = new Thread(() =>
         {
             try
             {
@@ -40,20 +40,21 @@ namespace AnthillNet.Core
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
             this.Protocol = protocol;
-            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Debug);
+            this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
                 this.HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
                 this.HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
-        public virtual void Start(string hostname, ushort port)
+        public virtual void Start(IPAddress ip, ushort port)
         {
-            this.Hostname = hostname;
+            this.HostIP = ip;
             this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
             this.Clock.Start();
+            this.Logging.Log($"Started at {port} port", LogType.Info);
         }
         public virtual void Stop() => this.ForceOff = true;
         public virtual void Tick() => this.OnTick?.Invoke(this);
@@ -62,7 +63,7 @@ namespace AnthillNet.Core
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
         public virtual void Disconnect(Connection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
-        public virtual void Send(Message message, IPEndPoint IPAddress) { }
+        public virtual void Send(byte[] buffer, IPEndPoint IPAddress) { }
         public virtual void Dispose() => this.HostSocket.Dispose();
         #endregion
     }
