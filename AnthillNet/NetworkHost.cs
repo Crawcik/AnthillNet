@@ -1,5 +1,6 @@
 ﻿using AnthillNet.Core;
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace AnthillNet
@@ -16,7 +17,7 @@ namespace AnthillNet
             {
                 HostType.Server => new Server(),
                 HostType.Client => new Client(),
-                _ => throw new System.NotImplementedException()
+                _ => throw new NotImplementedException()
 
             };
             this.Settings = new HostSettings()
@@ -28,12 +29,14 @@ namespace AnthillNet
                 Protocol = ProtocolType.TCP,
                 LogPriority = LogType.Error
             };
+            
         }
 
         public void Start(string hostname, ushort port)
         {
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
-            this.Transport.Logging.OnNetworkLog += OnNetworkLog;
+            if(Settings.WriteLogsToConsole)
+                this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             this.Transport.OnReceiveMessages += OnRevieceMessage;
             this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
             IPAddress ip;
@@ -46,12 +49,25 @@ namespace AnthillNet
 
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
-            throw new NotImplementedException();
+            
         }
 
-        private void OnRevieceMessage(object sender, Connection connection)
+        private void OnRevieceMessage(object sender, Packet[] packets)
         {
-            throw new NotImplementedException();
+            foreach(Packet packet in packets)
+            {
+                if (packet.data.Length > this.Transport.MaxMessageSize)
+                    this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", LogType.Warning);
+                Message message;
+                try
+                {
+                    message = Message.Deserialize(packet.data);
+                } 
+                catch
+                {
+                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}!", LogType.Warning);
+                }
+            }
         }
 
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
