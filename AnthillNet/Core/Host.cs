@@ -25,7 +25,7 @@
         public event TickHander OnTick;
         public event ConnectHandler OnConnect;
         public event DisconnectHandler OnDisconnect;
-        public event IncomingMessagesHandler OnReceiveMessages;
+        public event IncomingMessagesHandler OnReceiveData;
         public event InternalHostErrorHandler OnInternalHostError;
         public event StopHandler OnStop;
         #endregion
@@ -33,8 +33,8 @@
         #region Event Invokers
         protected void IncomingMessagesInvoke(Connection connection) {
             this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
-            if (this.OnReceiveMessages != null)
-                this.OnReceiveMessages?.Invoke(this, connection.GetMessages());
+            if (this.OnReceiveData != null)
+                this.OnReceiveData?.Invoke(this, connection.GetMessages());
             connection.ClearMessages();
         }
         protected void InternalHostErrorInvoke(System.Exception exception) 
