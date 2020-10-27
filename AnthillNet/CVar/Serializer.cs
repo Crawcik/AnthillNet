@@ -2,7 +2,7 @@
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace AnthillNet
+namespace AnthillNet.CVar
 {
     public delegate byte[] Serializer(Message value);
     public delegate Message Deserializer(byte[] data);
