@@ -14,7 +14,7 @@ namespace AnthillNet
         public uint MaxConnections;
 
         //How big can single packet can be (in bytes)
-        public uint MaxDataSize;
+        public int MaxDataSize;
 
         //Logging to console
         public bool WriteLogsToConsole;

@@ -10,6 +10,7 @@ namespace AnthillNet
     {
         #region Properties
         public Base Transport { private set; get; }
+        public Interpreter Interpreter { private set; get; }
         public HostType Type { private set; get; }
         public HostSettings Settings { set; get; }
         #endregion
@@ -34,8 +35,10 @@ namespace AnthillNet
                 Protocol = ProtocolType.TCP,
                 LogPriority = LogType.Error
             };
+            this.Interpreter = new Interpreter();
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
+            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate; ;
         }
         #endregion
 
@@ -49,6 +52,7 @@ namespace AnthillNet
                 this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             else
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
+            this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
             this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
@@ -151,7 +155,7 @@ namespace AnthillNet
                 Message message;
                 try
                 {
-                    message = Message.Deserialize(packet.data);
+                    Interpreter.ResolveMessage(Message.Deserialize(packet.data));
                 }
                 catch
                 {
@@ -159,6 +163,7 @@ namespace AnthillNet
                 }
             }
         }
+        private void Interpreter_OnMessageGenerate(object sender, Message message) => Send(message);
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
         {
             switch (Uri.CheckHostName(hostname))
