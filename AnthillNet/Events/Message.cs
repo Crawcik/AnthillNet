@@ -1,4 +1,4 @@
-﻿namespace AnthillNet.CVar
+﻿namespace AnthillNet.Events
 {
     [System.Serializable]
     public struct Message
