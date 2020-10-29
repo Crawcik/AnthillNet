@@ -1,32 +1,33 @@
 ﻿using AnthillNet.Core;
 using System;
-using System.Reflection;
 
 namespace AnthillNet.Events
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+    [Serializable]
     public class Order : Attribute
     {
-        public readonly Interpreter Interpreter;
-        public bool CanOrderServer { private set; get; }
-        public bool CanOrderClient { private set; get; }
+        private Interpreter Interpreter { set; get; }
+        public readonly bool CanOrderServer;
+        public readonly bool CanOrderClient;
+        private Action Action;
 
-        public Order(bool toServer, bool toClient)
+        public Order(bool toServer = true, bool toClient = true)
         {
             this.CanOrderClient = toClient;
             this.CanOrderServer = toServer;
         }
 
-        internal Order(Interpreter interpreter) => this.Interpreter = interpreter;
+        public Order(Interpreter interpreter) => this.Interpreter = interpreter;
+        internal void Invoke() => this.Action.Invoke();
 
-        public void Invoke(Action target)
+        public void Call(Action target)
         {
-            
-        }
-
-        public void Invoke(Action target, Connection connection)
-        {
-
+            Order attribute = (Order)Attribute.GetCustomAttribute(target.Method, typeof(Order));
+            if (attribute == null || target == null)
+                return;
+            attribute.Action = target;
+            Interpreter.PrepareOrder(attribute);
         }
     }
 }

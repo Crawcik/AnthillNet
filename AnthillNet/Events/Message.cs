@@ -3,10 +3,10 @@
     [System.Serializable]
     public struct Message
     {
-        public readonly string destiny;
+        public readonly ulong destiny;
         public readonly object data;
 
-        public Message(string destiny, object data)
+        public Message(ulong destiny, object data)
         {
             this.destiny = destiny;
             this.data = data;
