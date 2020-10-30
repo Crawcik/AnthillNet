@@ -24,6 +24,12 @@ namespace AnthillNet.Events
             {
                 switch ((InternalFuctionsID)message.destiny)
                 {
+                    case InternalFuctionsID.Ping:
+                        OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Pong, null);
+                        break;
+                    case InternalFuctionsID.Pong:
+
+                        break;
                     case InternalFuctionsID.Order:
                         ((Order)message.data).Invoke();
                         break;
@@ -37,11 +43,14 @@ namespace AnthillNet.Events
             }
         }
 
-        internal void PrepareOrder(Order order) => OnMessageGenerate.Invoke(this, new Message((ulong)InternalFuctionsID.Order, order));
+        internal void PrepareOrder(Order order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Order, order));
         public Order GetOrderFunction() => new Order(this);
 
         private enum InternalFuctionsID
         {
+            NULL = 0,
+            Ping = 1,
+            Pong = 2,
             Order = 10
         }
     }
