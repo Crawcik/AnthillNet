@@ -51,7 +51,8 @@ namespace AnthillNet.Events
             NULL = 0,
             Ping = 1,
             Pong = 2,
-            Order = 10
+            Order = 10,
+            Event = 20
         }
     }
 }

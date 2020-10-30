@@ -10,4 +10,9 @@
     <PackageProjectUrl>https://github.com/Crawcik/AnthillNet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Crawcik/AnthillNet</RepositoryUrl>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="Events\Interfaces\**" />
+    <EmbeddedResource Remove="Events\Interfaces\**" />
+    <None Remove="Events\Interfaces\**" />
+  </ItemGroup>
 </Project>
