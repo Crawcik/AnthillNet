@@ -13,6 +13,7 @@ namespace AnthillNet.Events
 
         public delegate void MessageGenerate(object sender, Message message);
         public event MessageGenerate OnMessageGenerate;
+        internal event MessageGenerate OnEventIncoming;
 
         private ulong destiny_avalible;
 
@@ -25,13 +26,16 @@ namespace AnthillNet.Events
                 switch ((InternalFuctionsID)message.destiny)
                 {
                     case InternalFuctionsID.Ping:
-                        OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Pong, null);
+                        OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Pong, null));
                         break;
                     case InternalFuctionsID.Pong:
-
+                        
                         break;
                     case InternalFuctionsID.Order:
                         ((Order)message.data).Invoke();
+                        break;
+                    case InternalFuctionsID.Event:
+                        OnEventIncoming?.Invoke(this, message);
                         break;
                     default:
                         return;
@@ -44,6 +48,7 @@ namespace AnthillNet.Events
         }
 
         internal void PrepareOrder(Order order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Order, order));
+        internal void PrepareEvent(EventCommand order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Event, order));
         public Order GetOrderFunction() => new Order(this);
 
         private enum InternalFuctionsID

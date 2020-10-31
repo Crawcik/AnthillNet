@@ -2,11 +2,10 @@
 {
     public interface INetEvent
     {
-        void Invoke(INetEvent ev);
     }
 
     [System.Serializable]
-    public abstract class NetArgs : INetEvent
+    public abstract class NetArgs
     {
         public abstract void Invoke(INetEvent ev);
     }
