@@ -34,12 +34,16 @@ namespace AnthillNet.Events
                 args.Invoke(ev);
         }
 
-
-
         public void HandleEvent(NetArgs args, Type net_event)
         {
-            foreach (INetEvent ev in this.event_stock.Where(x => net_event.IsAssignableFrom(x.Key)).Select(x => x.Value))
-                args.Invoke(ev);
+            try
+            {
+                foreach (INetEvent ev in this.event_stock.Where(x => net_event.IsAssignableFrom(x.Key)).Select(x => x.Value))
+                    args.Invoke(ev);
+            } 
+            catch(Exception ex)
+            {
+            }
         }
 
         public void LoadEventHandler(INetEvent instance) => event_stock.Add(instance.GetType(), instance);

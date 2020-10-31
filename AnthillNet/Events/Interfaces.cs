@@ -9,6 +9,6 @@ namespace AnthillNet.Events
 
     public interface ITest_NetEvent : INetEvent
     {
-        void OnTest(PingResult_NetArgs args);
+        void OnTest(Test_NetArgs args);
     }
 }
