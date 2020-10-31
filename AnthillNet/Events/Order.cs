@@ -1,5 +1,4 @@
-﻿using AnthillNet.Core;
-using System;
+﻿using System;
 
 namespace AnthillNet.Events
 {
