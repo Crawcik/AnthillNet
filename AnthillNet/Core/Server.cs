@@ -13,7 +13,7 @@ namespace AnthillNet.Core
         public Server() => this.Logging.LogName = "Server";
 
         #region Public methods
-        public override void Start(IPAddress ip, ushort port)
+        public override void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
             this.Dictionary = new Dictionary<string, Connection>();
             IPEndPoint endPoint = new IPEndPoint(ip, port);
@@ -21,7 +21,19 @@ namespace AnthillNet.Core
             if (this.Protocol == ProtocolType.TCP)
             {
                 this.HostSocket.Listen(100);
-                this.HostSocket.BeginAccept(this.WaitForConnection, null);
+                if (this.Async)
+                    this.HostSocket.BeginAccept(this.WaitForConnection, null);
+                else
+                    try
+                    {
+                        this.ClientConnected(this.HostSocket.Accept());
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is SocketException)
+                            base.InternalHostErrorInvoke(e);
+                    }
+
             }
             else if(this.Protocol == ProtocolType.UDP)
             {
@@ -30,7 +42,7 @@ namespace AnthillNet.Core
                 this.HostSocket.BeginReceiveFrom(stack.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
             }
             this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
-            base.Start(ip, port);
+            base.Start(ip, port, run_clock);
         }
         public override void Stop()
         {
@@ -78,11 +90,17 @@ namespace AnthillNet.Core
                 if (this.Protocol == ProtocolType.TCP)
                 {
                     Socket socket = this.Dictionary[IPAddress.ToString()].Socket;
-                    socket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+                    if (this.Async)
+                        socket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
+                    else
+                        socket.Send(buffer, 0, buffer.Length, 0);
                 }
                 else if (this.Protocol == ProtocolType.UDP)
                 {
-                    this.HostSocket.BeginSendTo(buffer, 0, buffer.Length, 0, IPAddress, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+                    if (this.Async)
+                        this.HostSocket.BeginSendTo(buffer, 0, buffer.Length, 0, IPAddress, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+                    else
+                        this.HostSocket.SendTo(buffer, 0, buffer.Length, 0, IPAddress);
                 }
             }
             catch (Exception e)
@@ -101,18 +119,31 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
+        private void ClientConnected(Socket client)
+        {
+            Connection connection = new Connection(client);
+            connection.TempBuffer = new byte[this.MaxMessageSize];
+            this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
+            client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
+            this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
+            base.Connect(connection);
+            if(this.Async)
+                this.HostSocket.BeginAccept(this.WaitForConnection, null);
+            else
+                try {
+                }
+                catch (Exception e)
+                {
+                    if (e is SocketException)
+                        base.InternalHostErrorInvoke(e);
+                }
+        }
+
         private void WaitForConnection(IAsyncResult ar)
         {
             try
             {
-                Socket client = this.HostSocket.EndAccept(ar);
-                Connection connection = new Connection(client);
-                connection.TempBuffer = new byte[this.MaxMessageSize];
-                this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
-                client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
-                this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
-                base.Connect(connection);
-                this.HostSocket.BeginAccept(this.WaitForConnection, null);
+                ClientConnected(this.HostSocket.EndAccept(ar));
             }
             catch (Exception e)
             {
