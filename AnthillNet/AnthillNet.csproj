@@ -15,4 +15,7 @@
     <EmbeddedResource Remove="Events\Interfaces\**" />
     <None Remove="Events\Interfaces\**" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Events\Entities\" />
+  </ItemGroup>
 </Project>
