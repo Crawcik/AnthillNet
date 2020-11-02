@@ -8,6 +8,7 @@
         public System.Net.IPAddress HostIP { private set; get; }
         public ushort Port { private set; get; }
         public byte TickRate { set; get; }
+        public bool Async { set; get; }
         public int MaxMessageSize { set; get; } = 1024;
         public bool Active => this.Clock.IsAlive;
         #endregion

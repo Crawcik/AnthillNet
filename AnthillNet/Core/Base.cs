@@ -17,8 +17,9 @@ namespace AnthillNet.Core
                     DateTime before_tick = DateTime.Now;
                     if (!this.isPause)
                         this.Tick();
-                    if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
-                        Thread.Sleep((int)rest);
+                    if(TickRate != 0)
+                        if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
+                            Thread.Sleep((int)rest);
                 }
             }
             finally
@@ -47,18 +48,19 @@ namespace AnthillNet.Core
             else if(protocol == ProtocolType.UDP)
                 this.HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
-        public virtual void Start(IPAddress ip, ushort port)
+        public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
             this.HostIP = ip;
             this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
-            this.Clock.Start();
+            if(run_clock)
+                this.Clock.Start();
             this.Logging.Log($"Started at {port} port", LogType.Info);
         }
         public virtual void Stop() => this.ForceOff = true;
         public virtual void Tick() => this.OnTick?.Invoke(this);
-        public virtual void ForceStop() => this.Clock.Abort();
+        public virtual void ForceStop() { if(this.Active) this.Clock.Abort(); }
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }

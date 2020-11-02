@@ -12,15 +12,27 @@ namespace AnthillNet.Core
         public Client() => this.Logging.LogName = "Client";
 
         #region Public methods
-        public override void Start(IPAddress ip, ushort port)
+        public override void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
             if (this.Active) return;
             if(this.Protocol == ProtocolType.UDP)
                 this.HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(ip, port);
             this.connection = new Connection(this.ServerEP);
-            this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
-            base.Start(ip, port);
+            if (this.Async)
+                this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
+            else
+                try
+                {
+                    this.HostSocket.Connect(this.ServerEP);
+                    this.ClientConnected();
+                }
+                catch (Exception e)
+                {
+                    if (e is SocketException)
+                        base.InternalHostErrorInvoke(e);
+                }
+            base.Start(ip, port, run_clock);
         }
         public override void Stop()
         {
@@ -56,7 +68,10 @@ namespace AnthillNet.Core
         {
             try
             {
-                this.HostSocket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+                if (this.Async)
+                    this.HostSocket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
+                else
+                    this.HostSocket.Send(buffer, 0, buffer.Length, 0);
             }
             catch (Exception e)
             {
@@ -73,18 +88,22 @@ namespace AnthillNet.Core
 
         #region Private methods
 
+        private void ClientConnected()
+        {
+            this.connection = new Connection(this.HostSocket);
+            this.connection.TempBuffer = new byte[this.MaxMessageSize];
+            this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+            this.Logging.Log("Connected to " + this.ServerEP);
+        }
+
         private void WaitForConnection(IAsyncResult ar)
         {
             try
             {
                 this.HostSocket.EndConnect(ar);
-                this.connection = new Connection(this.HostSocket);
-                this.connection.TempBuffer = new byte[this.MaxMessageSize];
-                this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
-                this.Logging.Log("Connected to " + this.ServerEP);
-                base.Connect(this.connection);
+                this.ClientConnected();
             }
-            catch (Exception e)
+            catch (SocketException e)
             {
                 base.InternalHostErrorInvoke(e);
             }
