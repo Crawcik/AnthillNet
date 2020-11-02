@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace AnthillNet.Events
 {
-    public class EventManager
+    public class EventHandler
     {
         private readonly Dictionary<Type, INetEvent> event_stock = new Dictionary<Type, INetEvent>();
         private Interpreter Interpreter { set; get; }
 
-        public EventManager(Interpreter interpreter)
+        public EventHandler(Interpreter interpreter)
         {
             this.Interpreter = interpreter;
             this.Interpreter.OnEventIncoming += OnEventIncoming;
@@ -34,8 +36,14 @@ namespace AnthillNet.Events
 
         public void HandleEvent(NetArgs args, Type net_event)
         {
-            foreach (INetEvent ev in this.event_stock.Where(x => net_event.IsAssignableFrom(x.Key)).Select(x => x.Value))
-                args.Invoke(ev);
+            try
+            {
+                foreach (INetEvent ev in this.event_stock.Where(x => net_event.IsAssignableFrom(x.Key)).Select(x => x.Value))
+                    args.Invoke(ev);
+            } 
+            catch(Exception ex)
+            {
+            }
         }
 
         public void LoadEventHandler(INetEvent instance) => event_stock.Add(instance.GetType(), instance);

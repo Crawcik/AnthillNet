@@ -1,19 +1,16 @@
 ﻿using AnthillNet.Core;
 using AnthillNet.Events;
-using AnthillNet.Events.Entities;
-
 using System;
+using System.Collections.Generic;
 using System.Net;
 
 namespace AnthillNet
 {
-    public class Host : IDisposable, ILatency_NetEvent
+    public class Host : IDisposable
     {
         #region Properties
         public Base Transport { private set; get; }
         public Interpreter Interpreter { private set; get; }
-        public Order Order { private set; get; }
-        public EventManager EventManager { private set; get; }
         public HostType Type { private set; get; }
         public HostSettings Settings { set; get; }
         #endregion
@@ -39,21 +36,9 @@ namespace AnthillNet
                 LogPriority = LogType.Error
             };
             this.Interpreter = new Interpreter();
-            this.Order = new Order(this.Interpreter);
-            this.EventManager = new EventManager(this.Interpreter);
-
-            this.Interpreter.OnEventIncoming += Interpreter_OnEventIncoming;
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
-            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
-            this.Transport.OnConnect += Transport_OnConnect;
-
-            this.EventManager.LoadEventHandler(this);
-        }
-
-        private void Transport_OnConnect(object sender, Connection connection)
-        {
-            this.EventManager.OrderEvent<ILatency_NetEvent>(new Latency_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds));
+            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate; ;
         }
         #endregion
 
@@ -167,9 +152,10 @@ namespace AnthillNet
             {
                 if (packet.data.Length > this.Transport.MaxMessageSize)
                     this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", LogType.Warning);
+                Message message;
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
+                    Interpreter.ResolveMessage(Message.Deserialize(packet.data));
                 }
                 catch
                 {
@@ -199,18 +185,6 @@ namespace AnthillNet
             this.Transport.Logging.Log("Given hostname is invalid!", LogType.Error);
             iPAddress = null;
             return false;
-        }
-
-        private void Interpreter_OnEventIncoming(object sender, Message message)
-        {
-            EventCommand command = (EventCommand)message.data;
-            EventManager.HandleEvent(command.args, command.type);
-        }
-
-        public void OnLatencyResult(Latency_NetArgs args)
-        {
-            double ping = DateTime.Now.TimeOfDay.TotalMilliseconds - args.time;
-            this.Transport.Logging.Log($"Ping: {ping} ms");
         }
         #endregion
     }
