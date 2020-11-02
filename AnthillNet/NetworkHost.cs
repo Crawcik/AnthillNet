@@ -167,7 +167,6 @@ namespace AnthillNet
             {
                 if (packet.data.Length > this.Transport.MaxMessageSize)
                     this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", LogType.Warning);
-                Message message;
                 try
                 {
                     this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
