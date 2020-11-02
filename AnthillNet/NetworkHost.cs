@@ -7,7 +7,7 @@ using System.Net;
 
 namespace AnthillNet
 {
-    public class Host : IDisposable, IPingResult_NetEvent
+    public class Host : IDisposable, ILatency_NetEvent
     {
         #region Properties
         public Base Transport { private set; get; }
@@ -53,7 +53,7 @@ namespace AnthillNet
 
         private void Transport_OnConnect(object sender, Connection connection)
         {
-            this.EventManager.OrderEvent<IPingResult_NetEvent>(new PingResult_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds));
+            this.EventManager.OrderEvent<ILatency_NetEvent>(new Latency_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds));
         }
         #endregion
 
@@ -208,7 +208,7 @@ namespace AnthillNet
             EventManager.HandleEvent(command.args, command.type);
         }
 
-        public void OnPingResult(PingResult_NetArgs args)
+        public void OnLatencyResult(Latency_NetArgs args)
         {
             double ping = DateTime.Now.TimeOfDay.TotalMilliseconds - args.time;
             this.Transport.Logging.Log($"Ping: {ping} ms");
