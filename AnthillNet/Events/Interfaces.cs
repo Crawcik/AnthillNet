@@ -2,8 +2,13 @@
 
 namespace AnthillNet.Events
 {
-    public interface ILatency_NetEvent : INetEvent
+    public interface IPingResult_NetEvent : INetEvent
     {
-        void OnLatencyResult(Latency_NetArgs args);
+        void OnPingResult(PingResult_NetArgs args);
+    }
+
+    public interface ITest_NetEvent : INetEvent
+    {
+        void OnTest(Test_NetArgs args);
     }
 }
