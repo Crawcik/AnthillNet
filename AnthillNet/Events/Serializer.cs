@@ -1,8 +1,7 @@
 ﻿using System.IO;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
-namespace AnthillNet
+namespace AnthillNet.Events
 {
     public delegate byte[] Serializer(Message value);
     public delegate Message Deserializer(byte[] data);
@@ -16,13 +15,12 @@ namespace AnthillNet
 
         static Serialization() => SetDefault();
 
+        #region Default serialization methods
         public static void SetDefault()
         {
             Serializer = new Serializer(DefaultSerializer);
             Deserializer = new Deserializer(DefaultDeserializer);
         }
-
-        #region Default serialization methods
         private static Message DefaultDeserializer(byte[] data)
         {
             Message message;

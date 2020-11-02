@@ -17,8 +17,9 @@ namespace AnthillNet.Core
                     DateTime before_tick = DateTime.Now;
                     if (!this.isPause)
                         this.Tick();
-                    if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
-                        Thread.Sleep((int)rest);
+                    if(TickRate != 0)
+                        if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
+                            Thread.Sleep((int)rest);
                 }
             }
             finally
