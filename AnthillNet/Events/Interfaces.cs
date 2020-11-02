@@ -6,9 +6,4 @@ namespace AnthillNet.Events
     {
         void OnLatencyResult(Latency_NetArgs args);
     }
-
-    public interface ITest_NetEvent : INetEvent
-    {
-        void OnTest(Test_NetArgs args);
-    }
 }
