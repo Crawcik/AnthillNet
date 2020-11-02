@@ -69,6 +69,7 @@ namespace AnthillNet
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
             this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
+            this.Transport.Async = this.Settings.Async;
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
                 return;
