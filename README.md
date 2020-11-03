@@ -1,5 +1,4 @@
-### Work in Progress!
-### It's not finished yet
+### Work in Progress! It's not finished yet
 # *AnthillNet* is a library for network solutions with the simplest feature and a lot of customization settings
 
 ### What it can I do in it?
