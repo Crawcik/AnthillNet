@@ -6,6 +6,7 @@
 * You can make **events**, that can be invoke by server or client
 * Calling server or other clients to **execute method**
 * Get **logs** of operations preformed by host
+* Create own **events** and **net_args**
 
 ### What settings can I change in it?
 * Change protocol to **UDP** or **TCP**
