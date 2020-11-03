@@ -29,7 +29,7 @@ using System;
 
 public class Program : ILatency_NetEvent
 {
-    public const string myIP = "192.168.1.100";
+    public const string myIP = "192.168.1.100"; //Try to not use loopback ip (127.0.0.1), it maybe won't work between two pc's
     public const ushort myPort = 7777;
 
     public static void Main() => new Program().Run();
