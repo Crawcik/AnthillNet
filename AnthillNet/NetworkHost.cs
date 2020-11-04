@@ -34,11 +34,14 @@ namespace AnthillNet
                 MaxConnections = 0,
                 MaxDataSize = 4096,
                 TickRate = 8,
+                Async = true,
                 WriteLogsToConsole = true,
                 Protocol = ProtocolType.TCP,
                 LogPriority = LogType.Error
             };
-            this.Interpreter = new Interpreter();
+            bool server = this.Type == HostType.Client,
+                client = this.Type == HostType.Server;
+            this.Interpreter = new Interpreter(server, client);
             this.Order = new Order(this.Interpreter);
             this.EventManager = new EventManager(this.Interpreter);
 

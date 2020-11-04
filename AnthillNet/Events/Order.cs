@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace AnthillNet.Events
 {
@@ -20,16 +21,26 @@ namespace AnthillNet.Events
         }
 
         public Order(Interpreter interpreter) => this.Interpreter = interpreter;
-        internal void Invoke()
+        internal void Invoke(bool server, bool client)
         {
+            MethodInfo info = null;
+            if (Action != null)
+                info= Action.Method;
+            else if( ActionWithArgument != null)
+                info = ActionWithArgument.Method;
+            if (info == null)
+                return;
+            Order safeOrder = (Order)Order.GetCustomAttribute(info, typeof(Order));
+            if (!((safeOrder.CanOrderServer && server) || (safeOrder.CanOrderClient && client)))
+                return;
             if (Action != null)
                 this.Action?.Invoke();
-            if (ActionWithArgument != null)
+            else if (ActionWithArgument != null)
                 this.ActionWithArgument?.Invoke(args);
         }
         public void Call(Action target)
         {
-            Order attribute = (Order)Attribute.GetCustomAttribute(target.Method, typeof(Order));
+            Order attribute = (Order)Order.GetCustomAttribute(target.Method, typeof(Order));
             if (attribute == null || target == null)
                 return;
             attribute.Action = target;
@@ -38,7 +49,7 @@ namespace AnthillNet.Events
 
         public void Call(Action<NetArgs> target, NetArgs args)
         {
-            Order attribute = (Order)Attribute.GetCustomAttribute(target.Method, typeof(Order));
+            Order attribute = (Order)Order.GetCustomAttribute(target.Method, typeof(Order));
             if (attribute == null || target == null)
                 return;
             attribute.ActionWithArgument = target;
