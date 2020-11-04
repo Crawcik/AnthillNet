@@ -11,8 +11,8 @@ namespace AnthillNet.Events
         public readonly bool CanOrderServer;
         public readonly bool CanOrderClient;
         private Action Action;
-        private Action<NetArgs> ActionWithArgument;
-        private NetArgs args;
+        private Action<object> ActionWithArgument;
+        private object arg;
 
         public Order(bool toServer = true, bool toClient = true)
         {
@@ -36,7 +36,7 @@ namespace AnthillNet.Events
             if (Action != null)
                 this.Action?.Invoke();
             else if (ActionWithArgument != null)
-                this.ActionWithArgument?.Invoke(args);
+                this.ActionWithArgument?.Invoke(arg);
         }
         public void Call(Action target)
         {
@@ -47,13 +47,13 @@ namespace AnthillNet.Events
             Interpreter.PrepareOrder(attribute);
         }
 
-        public void Call(Action<NetArgs> target, NetArgs args)
+        public void Call(Action<object> target, object arg)
         {
             Order attribute = (Order)Order.GetCustomAttribute(target.Method, typeof(Order));
             if (attribute == null || target == null)
                 return;
             attribute.ActionWithArgument = target;
-            attribute.args = args;
+            attribute.arg = arg;
             Interpreter.PrepareOrder(attribute);
         }
     }
