@@ -12,7 +12,7 @@ namespace AnthillNet.Events
         public const ulong reservedIDs = 100;
         public delegate void MessageGenerate(object sender, Message message);
         public event MessageGenerate OnMessageGenerate;
-        internal event MessageGenerate OnEventIncoming;
+        public event MessageGenerate OnEventIncoming;
         private ulong destiny_avalible;
         public bool isServer { private set; get; }
         public bool isClient { private set; get; }
