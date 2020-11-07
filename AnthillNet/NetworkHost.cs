@@ -70,7 +70,7 @@ namespace AnthillNet
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
                 return;
-            this.Transport.Start(ip, port);
+            this.Transport.Start(ip, port, true);
         }
         public void Start(ushort port) => this.Start("127.0.0.1", port);
         public void Stop() 

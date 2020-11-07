@@ -59,7 +59,7 @@ namespace AnthillNet.Core
             this.Logging.Log($"Started at {port} port", LogType.Info);
         }
         public virtual void Stop() => this.ForceOff = true;
-        public virtual void Tick() => this.OnTick?.Invoke(this);
+        public abstract void Tick();
         public virtual void ForceStop() { if(this.Active) this.Clock.Abort(); }
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
