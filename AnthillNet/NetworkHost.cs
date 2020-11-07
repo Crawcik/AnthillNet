@@ -49,14 +49,8 @@ namespace AnthillNet
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
-            this.Transport.OnConnect += Transport_OnConnect;
 
             this.EventManager.LoadEventHandler(this);
-        }
-
-        private void Transport_OnConnect(object sender, Connection connection)
-        {
-            this.EventManager.OrderEvent<ILatency_NetEvent>(new Latency_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds));
         }
         #endregion
 
