@@ -7,15 +7,18 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        internal Dictionary<string, Connection> Dictionary;
+        public readonly Dictionary<string, Connection> Dictionary;
         private EndPoint LastEndPoint;
 
-        public Server() => this.Logging.LogName = "Server";
+        public Server()
+        {
+            this.Logging.LogName = "Server";
+            this.Dictionary = new Dictionary<string, Connection>();
+        }
 
         #region Public methods
         public override void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
-            this.Dictionary = new Dictionary<string, Connection>();
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             this.HostSocket.Bind(endPoint);
             if (this.Protocol == ProtocolType.TCP)
@@ -51,6 +54,7 @@ namespace AnthillNet.Core
             if(Protocol == ProtocolType.TCP)
                 foreach (Connection connection in this.Dictionary.Values)
                     connection.Socket.Close();
+            this.Dictionary.Clear();
             this.HostSocket.Close();
             base.Stop();
         }
@@ -182,8 +186,8 @@ namespace AnthillNet.Core
                     this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
                     this.Logging.Log($"Client {this.LastEndPoint} connected", LogType.Info);
                 }
-                connection.Add(connection.TempBuffer);
-                HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
+                this.Dictionary[this.LastEndPoint.ToString()].Add(connection.TempBuffer);
+                this.HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
             catch (SocketException)
             {
