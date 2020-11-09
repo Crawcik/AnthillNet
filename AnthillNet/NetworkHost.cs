@@ -31,7 +31,7 @@ namespace AnthillNet
             this.Settings = new HostSettings()
             {
                 Name = null,
-                MaxConnections = 0,
+                MaxConnections = 20,
                 MaxDataSize = 4096,
                 TickRate = 8,
                 Async = true,
