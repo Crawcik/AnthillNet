@@ -93,6 +93,7 @@ namespace AnthillNet.Core
             this.connection = new Connection(this.HostSocket);
             this.connection.TempBuffer = new byte[this.MaxMessageSize];
             this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+            base.Connect(connection);
             this.Logging.Log("Connected to " + this.ServerEP);
         }
 

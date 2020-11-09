@@ -31,14 +31,17 @@ namespace AnthillNet
             this.Settings = new HostSettings()
             {
                 Name = null,
-                MaxConnections = 0,
+                MaxConnections = 20,
                 MaxDataSize = 4096,
                 TickRate = 8,
+                Async = true,
                 WriteLogsToConsole = true,
                 Protocol = ProtocolType.TCP,
                 LogPriority = LogType.Error
             };
-            this.Interpreter = new Interpreter();
+            bool server = this.Type == HostType.Client,
+                client = this.Type == HostType.Server;
+            this.Interpreter = new Interpreter(server, client);
             this.Order = new Order(this.Interpreter);
             this.EventManager = new EventManager(this.Interpreter);
 
@@ -46,14 +49,8 @@ namespace AnthillNet
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
-            this.Transport.OnConnect += Transport_OnConnect;
 
             this.EventManager.LoadEventHandler(this);
-        }
-
-        private void Transport_OnConnect(object sender, Connection connection)
-        {
-            this.EventManager.OrderEvent<ILatency_NetEvent>(new Latency_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds));
         }
         #endregion
 
@@ -73,7 +70,7 @@ namespace AnthillNet
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
                 return;
-            this.Transport.Start(ip, port);
+            this.Transport.Start(ip, port, true);
         }
         public void Start(ushort port) => this.Start("127.0.0.1", port);
         public void Stop() 

@@ -10,14 +10,19 @@ namespace AnthillNet.Events
     public class Interpreter
     {
         public const ulong reservedIDs = 100;
-
         public delegate void MessageGenerate(object sender, Message message);
         public event MessageGenerate OnMessageGenerate;
-        internal event MessageGenerate OnEventIncoming;
-
+        public event MessageGenerate OnEventIncoming;
         private ulong destiny_avalible;
+        public bool isServer { private set; get; }
+        public bool isClient { private set; get; }
 
-        public Interpreter() => destiny_avalible = reservedIDs;
+        public Interpreter(bool server, bool client) 
+        {
+            this.destiny_avalible = reservedIDs;
+            this.isServer = server;
+            this.isClient = client;
+        }
 
         public void ResolveMessage(Message message)
         {
@@ -32,7 +37,8 @@ namespace AnthillNet.Events
                         
                         break;
                     case InternalFuctionsID.Order:
-                        ((Order)message.data).Invoke();
+                        Order order = (Order)message.data;
+                        order.Invoke(this.isServer, this.isClient);
                         break;
                     case InternalFuctionsID.Event:
                         OnEventIncoming?.Invoke(this, message);
