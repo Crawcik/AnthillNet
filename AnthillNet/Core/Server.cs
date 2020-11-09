@@ -85,6 +85,7 @@ namespace AnthillNet.Core
                     base.IncomingMessagesInvoke(connection);
                     connection.ClearMessages();
                 }
+            base.Tick();
         }
         public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {

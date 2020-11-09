@@ -14,6 +14,7 @@
         #endregion
 
         #region Delegates
+        public delegate void TickHandler(object sender);
         public delegate void ConnectHandler(object sender, Connection connection);
         public delegate void DisconnectHandler(object sender, Connection connection);
         public delegate void IncomingMessagesHandler(object sender, Packet[] packets);
@@ -22,6 +23,7 @@
         #endregion
 
         #region Events
+        public event TickHandler OnTick;
         public event ConnectHandler OnConnect;
         public event DisconnectHandler OnDisconnect;
         public event IncomingMessagesHandler OnReceiveData;

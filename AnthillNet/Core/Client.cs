@@ -62,6 +62,7 @@ namespace AnthillNet.Core
                     base.IncomingMessagesInvoke(this.connection);
                     this.connection.ClearMessages();
                 }
+            base.Tick();
         }
         public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {
