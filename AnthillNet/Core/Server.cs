@@ -24,18 +24,7 @@ namespace AnthillNet.Core
             if (this.Protocol == ProtocolType.TCP)
             {
                 this.HostSocket.Listen(100);
-                if (this.Async)
-                    this.HostSocket.BeginAccept(this.WaitForConnection, null);
-                else
-                    try
-                    {
-                        this.ClientConnected(this.HostSocket.Accept());
-                    }
-                    catch (Exception e)
-                    {
-                        if (e is SocketException)
-                            base.InternalHostErrorInvoke(e);
-                    }
+                this.HostSocket.BeginAccept(this.WaitForConnection, null);
 
             }
             else if(this.Protocol == ProtocolType.UDP)
@@ -123,31 +112,19 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
-        private void ClientConnected(Socket client)
-        {
-            Connection connection = new Connection(client);
-            connection.TempBuffer = new byte[this.MaxMessageSize];
-            this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
-            client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
-            this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
-            base.Connect(connection);
-            if(this.Async)
-                this.HostSocket.BeginAccept(this.WaitForConnection, null);
-            else
-                try {
-                }
-                catch (Exception e)
-                {
-                    if (e is SocketException)
-                        base.InternalHostErrorInvoke(e);
-                }
-        }
-
         private void WaitForConnection(IAsyncResult ar)
         {
             try
             {
-                ClientConnected(this.HostSocket.EndAccept(ar));
+
+                Socket client = this.HostSocket.EndAccept(ar);
+                Connection connection = new Connection(client);
+                connection.TempBuffer = new byte[this.MaxMessageSize];
+                this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
+                client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
+                this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
+                base.Connect(connection);
+                this.HostSocket.BeginAccept(this.WaitForConnection, null);
             }
             catch (Exception e)
             {
@@ -161,6 +138,7 @@ namespace AnthillNet.Core
             try
             {
                 connection.Socket.EndReceive(ar);
+
                 connection.Add(connection.TempBuffer);
                 connection.Socket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
             }
@@ -184,12 +162,13 @@ namespace AnthillNet.Core
                 if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
                 {
                     this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
-                    this.Logging.Log($"Client {this.LastEndPoint} connected", LogType.Info);
+                    this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
+                    base.Connect(connection);
                 }
                 this.Dictionary[this.LastEndPoint.ToString()].Add(connection.TempBuffer);
                 this.HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
-            catch (SocketException)
+            catch (SocketException e)
             {
                 this.HostSocket.Close();
             }
