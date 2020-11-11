@@ -36,19 +36,18 @@ namespace AnthillNet.Unity
         {
             if (Instance != null)
                 return;
-            new CustomSerializer();
             Instance = this;
             DontDestroyOnLoad(this);
             this.Settings = new HostSettings()
             {
                 Name = null,
                 MaxConnections = 20,
-                MaxDataSize = 4096,
-                TickRate = 8,
+                MaxDataSize = 16384,
+                TickRate = 14,
                 Async = false,
                 WriteLogsToConsole = true,
                 Protocol = ProtocolType.UDP,
-                LogPriority = AnthillNet.Core.LogType.Debug
+                LogPriority = AnthillNet.Core.LogType.Warning
             };
         }
 
@@ -61,8 +60,8 @@ namespace AnthillNet.Unity
             else if (this.HostType == HostType.Client)
                 this.Transport = new Client();
 
-            bool server = this.HostType == HostType.Client,
-                client = this.HostType == HostType.Server;
+            bool server = this.HostType == HostType.Server,
+                client = this.HostType == HostType.Client;
             this.Interpreter = new Interpreter(server, client);
             this.Order = new Order(this.Interpreter);
             this.EventManager = new EventManager(this.Interpreter);
@@ -90,7 +89,7 @@ namespace AnthillNet.Unity
             isRunning = true;
             this.OnStart?.Invoke();
             if (HostType == HostType.Client)
-                this.Send(new Message(1, "CONNECTION TEST"));
+                this.Send(new Message(0, "CONNECTION TEST"));
         }
         public void Stop()
         {
@@ -164,7 +163,13 @@ namespace AnthillNet.Unity
                 }
             }
         }
-        private void Interpreter_OnMessageGenerate(object sender, Message message) => Send(message);
+        private void Interpreter_OnMessageGenerate(object sender, Message message, string target) 
+        {
+            if (string.IsNullOrEmpty(target))
+                Send(message);
+            else
+                SendTo(message, target);
+        }
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
         {
             if (hostname == "localhost")
@@ -232,7 +237,7 @@ namespace AnthillNet.Unity
             }
             else this.Transport.Logging.Log("Message data is too big!", AnthillNet.Core.LogType.Error);
         }
-        private void Interpreter_OnEventIncoming(object sender, Message message)
+        private void Interpreter_OnEventIncoming(object sender, Message message, string target)
         {
             EventCommand command = (EventCommand)message.data;
             EventManager.HandleEvent(command.args, command.type);
