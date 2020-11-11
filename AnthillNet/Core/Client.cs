@@ -116,6 +116,7 @@ namespace AnthillNet.Core
             {
                 this.HostSocket.EndReceive(ar);
                 this.connection.Add(connection.TempBuffer);
+                connection.TempBuffer = new byte[this.MaxMessageSize];
                 this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
             catch (SocketException)
