@@ -163,7 +163,7 @@ namespace AnthillNet.Core
                 {
                     this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
                     this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
-                    base.Connect(connection);
+                    base.Connect(new Connection((IPEndPoint)this.LastEndPoint));
                 }
                 this.Dictionary[this.LastEndPoint.ToString()].Add(connection.TempBuffer);
                 this.HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
