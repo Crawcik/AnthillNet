@@ -44,9 +44,9 @@ namespace AnthillNet.Core
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
             if (protocol == ProtocolType.TCP)
-                this.HostSocket = new Socket(SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                this.HostSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
-                this.HostSocket = new Socket(SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+                this.HostSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
         public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
