@@ -15,7 +15,7 @@ namespace AnthillNet.Events
             this.Interpreter.OnEventIncoming += OnEventIncoming;
         }
 
-        private void OnEventIncoming(object sender, Message message)
+        private void OnEventIncoming(object sender, Message message, string target)
         {
             EventCommand command = ((EventCommand)message.data);
             this.HandleEvent(command.args, command.type);

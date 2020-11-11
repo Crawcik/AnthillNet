@@ -10,9 +10,11 @@ namespace AnthillNet.Events
         private Interpreter Interpreter { set; get; }
         public readonly bool CanOrderServer;
         public readonly bool CanOrderClient;
+        public string target { private set; get; }
         private Action Action;
         private Action<object> ActionWithArgument;
         private object arg;
+       
 
         public Order(bool toServer = true, bool toClient = true)
         {
@@ -54,6 +56,27 @@ namespace AnthillNet.Events
                 return;
             attribute.ActionWithArgument = target;
             attribute.arg = arg;
+            Interpreter.PrepareOrder(attribute);
+        }
+
+        public void CallTo(Action<object> method, object arg, string target)
+        {
+            Order attribute = (Order)Order.GetCustomAttribute(method.Method, typeof(Order));
+            if (attribute == null || method == null)
+                return;
+            attribute.ActionWithArgument = method;
+            attribute.arg = arg;
+            attribute.target = target;
+            Interpreter.PrepareOrder(attribute);
+        }
+
+        public void CallTo(Action method, string target)
+        {
+            Order attribute = (Order)Order.GetCustomAttribute(method.Method, typeof(Order));
+            if (attribute == null || method == null)
+                return;
+            attribute.Action = method;
+            attribute.target = target;
             Interpreter.PrepareOrder(attribute);
         }
     }

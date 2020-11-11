@@ -10,7 +10,7 @@ namespace AnthillNet.Events
     public class Interpreter
     {
         public const ulong reservedIDs = 100;
-        public delegate void MessageGenerate(object sender, Message message);
+        public delegate void MessageGenerate(object sender, Message message, string target);
         public event MessageGenerate OnMessageGenerate;
         public event MessageGenerate OnEventIncoming;
         private ulong destiny_avalible;
@@ -31,7 +31,7 @@ namespace AnthillNet.Events
                 switch ((InternalFuctionsID)message.destiny)
                 {
                     case InternalFuctionsID.Ping:
-                        OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Pong, null));
+                        OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Pong, null), null);
                         break;
                     case InternalFuctionsID.Pong:
                         
@@ -41,7 +41,7 @@ namespace AnthillNet.Events
                         order.Invoke(this.isServer, this.isClient);
                         break;
                     case InternalFuctionsID.Event:
-                        OnEventIncoming?.Invoke(this, message);
+                        OnEventIncoming?.Invoke(this, message, null);
                         break;
                     default:
                         return;
@@ -53,8 +53,8 @@ namespace AnthillNet.Events
             }
         }
 
-        internal void PrepareOrder(Order order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Order, order));
-        internal void PrepareEvent(EventCommand order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Event, order));
+        internal void PrepareOrder(Order order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Order, order), order.target);
+        internal void PrepareEvent(EventCommand order) => OnMessageGenerate?.Invoke(this, new Message((ulong)InternalFuctionsID.Event, order), null);
         public Order GetOrderFunction() => new Order(this);
 
         private enum InternalFuctionsID
