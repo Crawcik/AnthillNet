@@ -166,6 +166,7 @@ namespace AnthillNet.Core
                     base.Connect(new Connection((IPEndPoint)this.LastEndPoint));
                 }
                 this.Dictionary[this.LastEndPoint.ToString()].Add(connection.TempBuffer);
+                connection.TempBuffer = new byte[MaxMessageSize];
                 this.HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
             catch (SocketException e)
