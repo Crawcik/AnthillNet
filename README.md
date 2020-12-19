@@ -27,7 +27,7 @@ using AnthillNet.Events.Entities;
 
 using System;
 
-public class Program : ILatency_NetEvent
+public class Program
 {
     public const string myIP = "192.168.1.100"; //Try to not use loopback ip (127.0.0.1), it could not work between two pc's
     public const ushort myPort = 7777;
@@ -48,7 +48,6 @@ public class Program : ILatency_NetEvent
 
         Host host = new Host(HostType.Server); //Or HostType.Client for client obviously
         host.Settings = settings;
-        host.EventManager.LoadEventHandler(this); //Adding this class events for handling
 
         host.Start(myIP, myPort); //Connecting or starting server
         host.Send(new Message(0, "Test")); //Sending simple message (destinies from 1 to 100 are reserved for events, orders, pings etc. if you using AnthillNet.Events)
@@ -73,12 +72,6 @@ public class Program : ILatency_NetEvent
         host.Stop();
         host.Dispose();
 
-    }
-
-    public void OnLatencyResult(Latency_NetArgs args)
-    {
-        double time = DateTime.Now.TimeOfDay.TotalMilliseconds - args.time;
-        Console.WriteLine($"Latency is {time} ms");
     }
 
     [Order(toClient: true, toServer: true)]
