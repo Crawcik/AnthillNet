@@ -1,5 +1,4 @@
-﻿using AnthillNet;
-using AnthillNet.Core;
+﻿using AnthillNet.Core;
 using AnthillNet.Events;
 
 using System;
@@ -30,9 +29,10 @@ namespace AnthillNet.Unity
         public UnityEvent OnStart;
 
         private bool isRunning;
-        private float tickTimeElapsed;
+        private float tickTimeDestination, tickTimeNow;
         #endregion
 
+        #region Unity methods
         void Awake()
         {
             if (Instance != null)
@@ -51,6 +51,18 @@ namespace AnthillNet.Unity
                 LogPriority = AnthillNet.Core.LogType.Warning
             };
         }
+        private void Update()
+        {
+            if (!isRunning)
+                return;
+            if (tickTimeNow >= tickTimeDestination)
+            {
+                this.Transport.Tick();
+                tickTimeDestination = tickTimeNow + (1f / this.Settings.TickRate);
+            }
+            tickTimeNow += Time.deltaTime;
+        }
+        #endregion
 
         #region Public methods
         public void Run()
@@ -110,17 +122,6 @@ namespace AnthillNet.Unity
         #endregion
 
         #region Private methods
-        private void Update()
-        {
-            if (!isRunning)
-                return;
-            if (Time.time > tickTimeElapsed)
-            {
-                float time_before = Time.time;
-                this.Transport.Tick();
-                tickTimeElapsed = time_before + (1f / this.Settings.TickRate);
-            }
-        }
         private void OnStopped(object sender)
         {
             isRunning = false;
