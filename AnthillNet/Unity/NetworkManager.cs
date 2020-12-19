@@ -1,9 +1,10 @@
-﻿ using AnthillNet;
+﻿using AnthillNet;
 using AnthillNet.Core;
 using AnthillNet.Events;
-using AnthillNet.Events.Entities;
+
 using System;
 using System.Net;
+
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -17,7 +18,6 @@ namespace AnthillNet.Unity
         public Base Transport { private set; get; }
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
-        public EventManager EventManager { private set; get; }
         public HostSettings Settings { private set; get; }
         public HostType HostType { private set; get; }
         #endregion
@@ -65,10 +65,8 @@ namespace AnthillNet.Unity
                 client = this.HostType == HostType.Client;
             this.Interpreter = new Interpreter(server, client);
             this.Order = new Order(this.Interpreter);
-            this.EventManager = new EventManager(this.Interpreter);
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
-            this.Interpreter.OnEventIncoming += Interpreter_OnEventIncoming;
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
 
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
@@ -238,11 +236,6 @@ namespace AnthillNet.Unity
                 }
             }
             else this.Transport.Logging.Log("Message data is too big!", AnthillNet.Core.LogType.Error);
-        }
-        private void Interpreter_OnEventIncoming(object sender, Message message, string target)
-        {
-            EventCommand command = (EventCommand)message.data;
-            EventManager.HandleEvent(command.args, command.type);
         }
         #endregion
     }
