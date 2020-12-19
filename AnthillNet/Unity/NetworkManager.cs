@@ -1,4 +1,4 @@
-﻿using AnthillNet;
+﻿ using AnthillNet;
 using AnthillNet.Core;
 using AnthillNet.Events;
 using AnthillNet.Events.Entities;
@@ -32,6 +32,7 @@ namespace AnthillNet.Unity
         private bool isRunning;
         private float tickTimeElapsed;
         #endregion
+
         void Awake()
         {
             if (Instance != null)
@@ -42,7 +43,7 @@ namespace AnthillNet.Unity
             {
                 Name = null,
                 MaxConnections = 20,
-                MaxDataSize = 16384,
+                MaxDataSize = 4096,
                 TickRate = 14,
                 Async = false,
                 WriteLogsToConsole = true,
@@ -106,6 +107,7 @@ namespace AnthillNet.Unity
             if (this.Transport.Active)
                 this.Transport.ForceStop();
             this.Transport.Dispose();
+            this.Transport = null;
         }
         #endregion
 
@@ -130,7 +132,7 @@ namespace AnthillNet.Unity
         }
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
-            string text = $"[{e.Time:HH:mm:ss}][{e.LogName}][{e.Priority}] {e.Message}";
+            string text = $"[{e.LogName}][{e.Priority}] {e.Message}";
             switch (e.Priority)
             {
                 case AnthillNet.Core.LogType.Info:
@@ -157,7 +159,7 @@ namespace AnthillNet.Unity
                 {
                     this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
                 }
-                catch
+                catch(Exception e)
                 {
                     this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}!", AnthillNet.Core.LogType.Warning);
                 }
