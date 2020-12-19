@@ -1,19 +1,17 @@
 ﻿using AnthillNet.Core;
 using AnthillNet.Events;
-using AnthillNet.Events.Entities;
 
 using System;
 using System.Net;
 
 namespace AnthillNet
 {
-    public class Host : IDisposable, ILatency_NetEvent
+    public class Host : IDisposable
     {
         #region Properties
         public Base Transport { private set; get; }
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
-        public EventManager EventManager { private set; get; }
         public HostType Type { private set; get; }
         public HostSettings Settings { set; get; }
         #endregion
@@ -43,14 +41,9 @@ namespace AnthillNet
                 client = this.Type == HostType.Server;
             this.Interpreter = new Interpreter(server, client);
             this.Order = new Order(this.Interpreter);
-            this.EventManager = new EventManager(this.Interpreter);
 
-            this.Interpreter.OnEventIncoming += Interpreter_OnEventIncoming;
             this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
-            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
-
-            this.EventManager.LoadEventHandler(this);
         }
         #endregion
 
@@ -197,18 +190,6 @@ namespace AnthillNet
             this.Transport.Logging.Log("Given hostname is invalid!", LogType.Error);
             iPAddress = null;
             return false;
-        }
-
-        private void Interpreter_OnEventIncoming(object sender, Message message)
-        {
-            EventCommand command = (EventCommand)message.data;
-            EventManager.HandleEvent(command.args, command.type);
-        }
-
-        public void OnLatencyResult(Latency_NetArgs args)
-        {
-            double ping = DateTime.Now.TimeOfDay.TotalMilliseconds - args.time;
-            this.Transport.Logging.Log($"Ping: {ping} ms");
         }
         #endregion
     }
