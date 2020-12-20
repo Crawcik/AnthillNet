@@ -9,6 +9,8 @@ using UnityEngine.Events;
 
 namespace AnthillNet.Unity
 {
+    public delegate void NetworkEvent();
+
     public class NetworkManager : MonoBehaviour
     {
 
@@ -25,7 +27,17 @@ namespace AnthillNet.Unity
         public string hostname = "localhost";
         public ushort port = 7777;
         public HostType hostType;
-        public HostSettings settings;
+        public HostSettings settings = new HostSettings()
+        {
+            Name = null,
+            MaxConnections = 20,
+            MaxDataSize = 4096,
+            TickRate = 14,
+            Async = false,
+            WriteLogsToConsole = true,
+            Protocol = ProtocolType.UDP,
+            LogPriority = AnthillNet.Core.LogType.Warning
+        };
         public UnityEvent OnStart;
 
         private bool isRunning;
@@ -33,25 +45,18 @@ namespace AnthillNet.Unity
         #endregion
 
         #region Unity methods
-        void Awake()
+        public void Awake()
         {
+            DontDestoyOnLoad(this);
+
             if (Instance != null)
                 return;
             Instance = this;
-            DontDestroyOnLoad(this);
-            this.Settings = new HostSettings()
-            {
-                Name = null,
-                MaxConnections = 20,
-                MaxDataSize = 4096,
-                TickRate = 14,
-                Async = false,
-                WriteLogsToConsole = true,
-                Protocol = ProtocolType.UDP,
-                LogPriority = AnthillNet.Core.LogType.Warning
-            };
+            tickTimeDestination = 0;
+            tickTimeNow = 0;
         }
-        private void Update()
+
+        public void Update()
         {
             if (!isRunning)
                 return;
@@ -67,6 +72,7 @@ namespace AnthillNet.Unity
         #region Public methods
         public void Run()
         {
+            this.Settings = settings;
             this.HostType = hostType;
             if (this.HostType == HostType.Server)
                 this.Transport = new Server();
@@ -95,8 +101,9 @@ namespace AnthillNet.Unity
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
                 return;
+            tickTimeNow = 0;
+            tickTimeDestination = 0;
             this.Transport.Start(ip, port, run_clock: false);
-            tickTimeElapsed = 0f;
             isRunning = true;
             this.OnStart?.Invoke();
             if (HostType == HostType.Client)
@@ -104,6 +111,9 @@ namespace AnthillNet.Unity
         }
         public void Stop()
         {
+            Transport.Dispose();
+            if (!isRunning)
+                return;
             isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
@@ -237,6 +247,11 @@ namespace AnthillNet.Unity
                 }
             }
             else this.Transport.Logging.Log("Message data is too big!", AnthillNet.Core.LogType.Error);
+        }
+
+        private void DontDestoyOnLoad(NetworkManager networkManager)
+        {
+            //Not complited
         }
         #endregion
     }
