@@ -5,10 +5,9 @@ using System;
 using System.Net;
 
 using FlaxEngine;
-
 namespace AnthillNet.Flax
 {
-    public delegate void NetworkEvent(object sender);
+    public delegate void NetworkEvent();
 
     public class NetworkManager : Script
     {
@@ -26,8 +25,19 @@ namespace AnthillNet.Flax
         public string hostname = "localhost";
         public ushort port = 7777;
         public HostType hostType;
-        public HostSettings settings;
-        public static event NetworkEvent OnStart;
+
+        public HostSettings settings = new HostSettings()
+        {
+            Name = null,
+                MaxConnections = 20,
+                MaxDataSize = 4096,
+                TickRate = 14,
+                Async = false,
+                WriteLogsToConsole = true,
+                Protocol = ProtocolType.UDP,
+                LogPriority = AnthillNet.Core.LogType.Warning
+        };
+        public event NetworkEvent OnStart;
 
         private bool isRunning;
         private float tickTimeDestination, tickTimeNow;
@@ -43,17 +53,6 @@ namespace AnthillNet.Flax
             Instance = this;
             tickTimeDestination = 0;
             tickTimeNow = 0;
-            this.Settings = new HostSettings()
-            {
-                Name = null,
-                MaxConnections = 20,
-                MaxDataSize = 4096,
-                TickRate = 14,
-                Async = false,
-                WriteLogsToConsole = true,
-                Protocol = ProtocolType.UDP,
-                LogPriority = AnthillNet.Core.LogType.Warning
-            };
         }
 
         public override void OnUpdate()
@@ -67,11 +66,20 @@ namespace AnthillNet.Flax
             }
             tickTimeNow += Time.DeltaTime;
         }
+
+        public override void OnDestroy()
+        {
+            Stop();
+            this.Transport.Dispose();
+            this.Transport = null;
+        }
         #endregion
 
         #region Public methods
         public void Run()
         {
+
+            this.Settings = settings;
             this.HostType = hostType;
             if (this.HostType == HostType.Server)
                 this.Transport = new Server();
@@ -104,12 +112,16 @@ namespace AnthillNet.Flax
             tickTimeDestination = 0;
             this.Transport.Start(ip, port, run_clock: false);
             isRunning = true;
-            OnStart?.Invoke(this);
+
+            this.OnStart?.Invoke();
             if (HostType == HostType.Client)
                 this.Send(new Message(0, "CONNECTION TEST"));
         }
         public void Stop()
         {
+            Transport.Dispose();
+            if (!isRunning)
+                return;
             isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
