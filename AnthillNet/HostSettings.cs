@@ -2,6 +2,7 @@
 
 namespace AnthillNet
 {
+    [System.Serializable]
     public struct HostSettings
     {
         //Usefull for have logs for multiple server
