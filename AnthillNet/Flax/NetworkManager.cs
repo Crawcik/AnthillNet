@@ -5,8 +5,6 @@ using System;
 using System.Net;
 
 using FlaxEngine;
-using FlaxEditor;
-
 namespace AnthillNet.Flax
 {
     public delegate void NetworkEvent();
@@ -27,6 +25,7 @@ namespace AnthillNet.Flax
         public string hostname = "localhost";
         public ushort port = 7777;
         public HostType hostType;
+
         public HostSettings settings = new HostSettings()
         {
             Name = null,
@@ -79,6 +78,7 @@ namespace AnthillNet.Flax
         #region Public methods
         public void Run()
         {
+
             this.Settings = settings;
             this.HostType = hostType;
             if (this.HostType == HostType.Server)
@@ -112,6 +112,7 @@ namespace AnthillNet.Flax
             tickTimeDestination = 0;
             this.Transport.Start(ip, port, run_clock: false);
             isRunning = true;
+
             this.OnStart?.Invoke();
             if (HostType == HostType.Client)
                 this.Send(new Message(0, "CONNECTION TEST"));
