@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace AnthillNet.Events
+﻿namespace AnthillNet.Events
 {
-    [Serializable]
+    [System.Serializable]
     public class Interpreter
     {
         public delegate void MessageGenerate(object sender, Message message, string target);

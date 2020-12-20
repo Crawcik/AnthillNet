@@ -66,7 +66,7 @@ namespace AnthillNet.Core
         public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
         public virtual void Disconnect(Connection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
         public virtual void Send(byte[] buffer, IPEndPoint IPAddress) { }
-        public virtual void Dispose() => this.HostSocket.Dispose();
+        public virtual void Dispose() { }
         #endregion
     }
 }
