@@ -84,7 +84,7 @@ namespace MaterialsFeaturesTour
                 Parent = Canvas,
                 Control = new Button
                 {
-                    Text = "Host",
+                    Text = "Connect",
                     Size = new Vector2(65f, 20f),
                     Font = new FontReference(Font, 12),
                     BackgroundColor = Color.ParseHex("FFFFFF19"),
@@ -106,7 +106,7 @@ namespace MaterialsFeaturesTour
                     BorderColor = Color.ParseHex("00000000")
                 }
             };
-            return true
+            return true;
         }
     }
 }

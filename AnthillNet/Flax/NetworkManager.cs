@@ -118,6 +118,7 @@ namespace AnthillNet.Flax
         }
         public void Stop()
         {
+            Transport.Dispose();
             if (!isRunning)
                 return;
             isRunning = false;
