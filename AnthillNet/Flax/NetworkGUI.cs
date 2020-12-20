@@ -1,7 +1,7 @@
 ﻿using FlaxEngine;
 using FlaxEngine.GUI;
 
-namespace AnthillNet.Flax;
+namespace AnthillNet.Flax
 {
     public class NetworkGUI : Script
     {
