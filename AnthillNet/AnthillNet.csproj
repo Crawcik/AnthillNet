@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
+    <LangVersion>7</LangVersion>
     <Authors>Crawcik</Authors>
     <Product />
     <Description>Universal .NET networking library</Description>
@@ -11,8 +11,11 @@
     <RepositoryUrl>https://github.com/Crawcik/AnthillNet</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Remove="Events\Interfaces\**" />
-    <EmbeddedResource Remove="Events\Interfaces\**" />
-    <None Remove="Events\Interfaces\**" />
+    <Compile Remove="Flax\**" />
+    <Compile Remove="Unity\**" />
+    <EmbeddedResource Remove="Flax\**" />
+    <EmbeddedResource Remove="Unity\**" />
+    <None Remove="Flax\**" />
+    <None Remove="Unity\**" />
   </ItemGroup>
 </Project>
