@@ -1,8 +1,7 @@
-﻿using AnthillNet.Flax;
-using FlaxEngine;
+﻿using FlaxEngine;
 using FlaxEngine.GUI;
 
-namespace MaterialsFeaturesTour
+namespace AnthillNet.Flax;
 {
     public class NetworkGUI : Script
     {
