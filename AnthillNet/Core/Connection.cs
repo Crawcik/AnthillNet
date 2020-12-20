@@ -11,21 +11,21 @@ namespace AnthillNet.Core
             this.EndPoint = address;
             this.messages = new List<Packet>();
             this.Socket = null;
-            this.TempBuffer = null;
+            this.tempBuffer = null;
         }
         internal Connection(Socket socket)
         {
             this.EndPoint = socket.RemoteEndPoint as IPEndPoint;
             this.messages = new List<Packet>();
             this.Socket = socket;
-            this.TempBuffer = null;
+            this.tempBuffer = null;
         }
 
         #region Properties
         public int MessagesCount => this.messages.Count;
         public IPEndPoint EndPoint { private set; get; }
         internal Socket Socket { private set; get; }
-        internal byte[] TempBuffer { set; get; }
+        internal byte[] tempBuffer;
         #endregion
 
         private readonly List<Packet> messages;

@@ -30,8 +30,8 @@ namespace AnthillNet.Core
             else if(this.Protocol == ProtocolType.UDP)
             {
                 this.LastEndPoint = new IPEndPoint(IPAddress.Any, port);
-                Connection stack = new Connection(endPoint){ TempBuffer = new byte[this.MaxMessageSize] };
-                this.HostSocket.BeginReceiveFrom(stack.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
+                Connection stack = new Connection(endPoint){ tempBuffer = new byte[this.MaxMessageSize] };
+                this.HostSocket.BeginReceiveFrom(stack.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
             }
             this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
             base.Start(ip, port, run_clock);
@@ -119,9 +119,9 @@ namespace AnthillNet.Core
 
                 Socket client = this.HostSocket.EndAccept(ar);
                 Connection connection = new Connection(client);
-                connection.TempBuffer = new byte[this.MaxMessageSize];
+                connection.tempBuffer = new byte[this.MaxMessageSize];
                 this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
-                client.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
+                client.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
                 this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
                 base.Connect(connection);
                 this.HostSocket.BeginAccept(this.WaitForConnection, null);
@@ -139,8 +139,8 @@ namespace AnthillNet.Core
             {
                 connection.Socket.EndReceive(ar);
 
-                connection.Add(connection.TempBuffer);
-                connection.Socket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
+                connection.Add(connection.tempBuffer);
+                connection.Socket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
             }
             catch (SocketException)
             {
@@ -165,10 +165,11 @@ namespace AnthillNet.Core
                     this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
                     base.Connect(new Connection((IPEndPoint)this.LastEndPoint));
                 }
-                this.Dictionary[this.LastEndPoint.ToString()].Add(connection.TempBuffer);
-                this.HostSocket.BeginReceiveFrom(connection.TempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
+                this.Dictionary[this.LastEndPoint.ToString()].Add(connection.tempBuffer);
+                connection.tempBuffer = new byte[MaxMessageSize];
+                this.HostSocket.BeginReceiveFrom(connection.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
                 this.HostSocket.Close();
             }

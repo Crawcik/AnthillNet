@@ -91,8 +91,8 @@ namespace AnthillNet.Core
         private void ClientConnected()
         {
             this.connection = new Connection(this.HostSocket);
-            this.connection.TempBuffer = new byte[this.MaxMessageSize];
-            this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+            this.connection.tempBuffer = new byte[this.MaxMessageSize];
+            this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             base.Connect(connection);
             this.Logging.Log("Connected to " + this.ServerEP);
         }
@@ -115,9 +115,9 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceive(ar);
-                this.connection.Add(connection.TempBuffer);
-                connection.TempBuffer = new byte[this.MaxMessageSize];
-                this.HostSocket.BeginReceive(connection.TempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+                this.connection.Add(connection.tempBuffer);
+                connection.tempBuffer = new byte[this.MaxMessageSize];
+                this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
             catch (SocketException)
             {
