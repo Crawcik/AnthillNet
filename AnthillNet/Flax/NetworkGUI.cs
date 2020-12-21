@@ -5,6 +5,11 @@ namespace AnthillNet.Flax
 {
     public class NetworkGUI : Script
     {
+        public static readonly string hostText = "Host",
+            connectText = "Connect",
+            stopText = "Stop",
+            disposeTest = "Dispose";
+
         public UICanvas Canvas;
         public FontAsset Font;
         private UIControl IP, host, connect, stop;
@@ -13,29 +18,18 @@ namespace AnthillNet.Flax
         {
             if (!SpawnGUI())
                 return;
-            (host.Control as Button).Clicked += OnHost;
-            (connect.Control as Button).Clicked += OnConnect;
-            (stop.Control as Button).Clicked += OnStop;
+            (host.Control as Button).Clicked += () => {
+                NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
+                NetworkManager.Instance.hostType = AnthillNet.HostType.Server;
+                NetworkManager.Instance.Run();
+            };
+            (connect.Control as Button).Clicked += () => {
+                NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
+                NetworkManager.Instance.hostType = AnthillNet.HostType.Client;
+                NetworkManager.Instance.Run();
+            };
+            (stop.Control as Button).Clicked += () => NetworkManager.Instance.Stop();
         }
-
-        #region Events
-        private void OnHost()
-        {
-            NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
-            NetworkManager.Instance.hostType = AnthillNet.HostType.Server;
-            NetworkManager.Instance.Run();
-        }
-        private void OnConnect()
-        {
-            NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
-            NetworkManager.Instance.hostType = AnthillNet.HostType.Client;
-            NetworkManager.Instance.Run();
-        }
-        private void OnStop()
-        {
-            NetworkManager.Instance.Stop();
-        }
-        #endregion
 
         private bool SpawnGUI()
         {

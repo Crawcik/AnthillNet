@@ -31,7 +31,7 @@ namespace AnthillNet.Flax
             Name = null,
                 MaxConnections = 20,
                 MaxDataSize = 4096,
-                TickRate = 16,
+                TickRate = 14,
                 Async = false,
                 WriteLogsToConsole = true,
                 Protocol = ProtocolType.UDP,
@@ -171,7 +171,7 @@ namespace AnthillNet.Flax
                 }
                 catch(Exception e)
                 {
-                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}!", AnthillNet.Core.LogType.Warning);
+                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}! {e.ToString()}", AnthillNet.Core.LogType.Warning);
                 }
             }
         }
