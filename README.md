@@ -56,9 +56,6 @@ public class Program
             char x = Console.ReadKey().KeyChar;
             switch (x)
             {
-                case 'p':
-                    host.EventManager.OrderEvent<ILatency_NetEvent>(new Latency_NetArgs(DateTime.Now.TimeOfDay.TotalMilliseconds)); //Sending event execution to another person
-                    break;
                 case 'o':
                     host.Order.Call(OrderTest); //You can also send method with argument
                     break;
