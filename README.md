@@ -23,7 +23,6 @@
 ```cs
 using AnthillNet;
 using AnthillNet.Events;
-using AnthillNet.Events.Entities;
 
 using System;
 
