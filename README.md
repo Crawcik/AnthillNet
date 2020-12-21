@@ -40,6 +40,7 @@ public class Program
             LogPriority = AnthillNet.Core.LogType.Info,
             Protocol = ProtocolType.TCP,
             TickRate = 8,
+            Async = true,
             WriteLogsToConsole = true,
             MaxConnections = 20,
             MaxDataSize = 4096
