@@ -31,7 +31,7 @@ namespace AnthillNet.Flax
             Name = null,
                 MaxConnections = 20,
                 MaxDataSize = 4096,
-                TickRate = 14,
+                TickRate = 16,
                 Async = false,
                 WriteLogsToConsole = true,
                 Protocol = ProtocolType.UDP,
@@ -65,13 +65,6 @@ namespace AnthillNet.Flax
                 tickTimeDestination = tickTimeNow + (1f / this.Settings.TickRate);
             }
             tickTimeNow += Time.DeltaTime;
-        }
-
-        public override void OnDestroy()
-        {
-            Stop();
-            this.Transport.Dispose();
-            this.Transport = null;
         }
         #endregion
 
