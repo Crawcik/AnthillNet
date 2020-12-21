@@ -11,7 +11,7 @@ namespace AnthillNet
         //How many times in second host will check & read data from connections
         public byte TickRate;
 
-        //How much clients can connect to server (Set to 0 if you only client)
+        //How much clients can connect to server (Set to 0 if you want no limit)
         public uint MaxConnections;
 
         //Is this working async
