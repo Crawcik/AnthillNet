@@ -1,4 +1,5 @@
-﻿using FlaxEngine;
+﻿#if FLAX_EDITOR
+using FlaxEngine;
 using FlaxEditor.CustomEditors.Editors;
 using FlaxEditor.CustomEditors;
 using FlaxEngine.GUI;
@@ -28,20 +29,14 @@ namespace AnthillNet.Flax
             var dispose = layout.Button(NetworkGUI.disposeTest, Color.DarkSlateGray);
             dispose.Button.Clicked += () => NetworkManager.Instance.Dispose();
             dispose.Button.TextColor = Color.IndianRed;
-            Editor.Instance.StateMachine.StateChanged += OnStateChanged;
+            Editor.Instance.StateMachine.StateChanging += OnStateChanging;
         }
 
-        protected override void Deinitialize()
+        private void OnStateChanging()
         {
-            //this.RebuildLayout();
-            base.Deinitialize();
-        }
-
-        private void OnStateChanged()
-        {
-            if (!Editor.Instance.StateMachine.IsPlayMode && NetworkManager.Instance != null)
-                if (NetworkManager.Instance.Transport.Active)
-                    NetworkManager.Instance.Dispose();
+            if (Editor.Instance.StateMachine.IsPlayMode && NetworkManager.Instance != null)
+                NetworkManager.Instance.Dispose();
         }
     }
 }
+#endif

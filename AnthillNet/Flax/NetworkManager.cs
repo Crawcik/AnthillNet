@@ -112,9 +112,6 @@ namespace AnthillNet.Flax
         }
         public void Stop()
         {
-            Transport.Dispose();
-            if (!isRunning)
-                return;
             isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
@@ -129,6 +126,7 @@ namespace AnthillNet.Flax
                 this.Transport.ForceStop();
             this.Transport.Dispose();
             this.Transport = null;
+            Destroy(this);
         }
         #endregion
 
