@@ -13,7 +13,22 @@ namespace AnthillNet
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
         public HostType Type { private set; get; }
-        public HostSettings Settings { set; get; }
+        public HostSettings Settings { set; get; } = new HostSettings()
+        {
+            Name = null,
+            MaxConnections = 0,
+            MaxDataSize = 4096,
+            TickRate = 8,
+            DualChannels = true,
+            Async = true,
+            WriteLogsToConsole = true,
+            Protocol = ProtocolType.TCP,
+            LogPriority = LogType.Error
+        };
+        #endregion
+
+        #region Fields
+        private bool isRunning;
         #endregion
 
         #region Initializers
@@ -25,17 +40,6 @@ namespace AnthillNet
                 HostType.Client => new Client(),
                 _ => throw new NotImplementedException()
 
-            };
-            this.Settings = new HostSettings()
-            {
-                Name = null,
-                MaxConnections = 20,
-                MaxDataSize = 4096,
-                TickRate = 8,
-                Async = true,
-                WriteLogsToConsole = true,
-                Protocol = ProtocolType.TCP,
-                LogPriority = LogType.Error
             };
             bool server = this.Type == HostType.Client,
                 client = this.Type == HostType.Server;
@@ -68,10 +72,11 @@ namespace AnthillNet
         public void Start(ushort port) => this.Start("127.0.0.1", port);
         public void Stop() 
         {
+            isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
             else
-                this.Transport.Logging.Log($"{this.Transport.Logging.LogName} is already stopped", LogType.Info);
+                this.Transport.Logging.Log($"{this.Transport.Logging.LogName} is already stopped", AnthillNet.Core.LogType.Info);
         }
         public void SendTo(Message message, string connection)
         {
@@ -125,6 +130,7 @@ namespace AnthillNet
         #region Private methods
         private void OnStopped(object sender)
         {
+            isRunning = false;
             this.Transport.Logging.Log($"Stopped", LogType.Info);
             this.Transport.Dispose();
         }
