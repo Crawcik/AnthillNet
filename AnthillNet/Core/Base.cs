@@ -58,15 +58,29 @@ namespace AnthillNet.Core
                 this.Clock.Start();
             this.Logging.Log($"Started at {port} port", LogType.Info);
         }
-        public virtual void Stop() => this.ForceOff = true;
+        public virtual void Stop()
+        {
+            this.Logging.Log($"Stopped", LogType.Info);
+            this.ForceOff = true;
+        }
         public virtual void Tick() => this.OnTick?.Invoke(this);
-        public virtual void ForceStop() { if(this.Active) this.Clock.Abort(); }
+        public virtual void ForceStop() { 
+            if(this.Active)
+                this.Clock.Abort();
+            this.Logging.Log($"Stopped", LogType.Info);
+        }
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
         public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
         public virtual void Disconnect(Connection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
         public virtual void Send(byte[] buffer, IPEndPoint IPAddress) { }
-        public virtual void Dispose() { }
-        #endregion
+        public virtual void Dispose() 
+        {
+#if !(NET20 || NET35)
+            this.HostSocket.Dispose();
+#endif
+            this.HostSocket = null;
+        }
+#endregion
     }
 }

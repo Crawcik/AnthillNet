@@ -10,7 +10,7 @@
         public byte TickRate { set; get; }
         public bool Async { set; get; }
         public int MaxMessageSize { set; get; } = 1024;
-        public bool Active => this.Clock.IsAlive;
+        public bool Active => Async ? this.Clock.IsAlive : this.HostSocket != null;
         #endregion
 
         #region Delegates
