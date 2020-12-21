@@ -68,15 +68,12 @@ namespace AnthillNet.Core
         }
         public override void Tick()
         {
-            lock (this.Dictionary)
-            {
-                foreach (Connection connection in this.Dictionary.Values)
-                    if (connection.MessagesCount > 0)
-                    {
-                        base.IncomingMessagesInvoke(connection);
-                        connection.ClearMessages();
-                    }
-            }
+            foreach (Connection connection in this.Dictionary.Values)
+                if (connection.MessagesCount > 0)
+                {
+                    base.IncomingMessagesInvoke(connection);
+                    connection.ClearMessages();
+                }
             base.Tick();
         }
         public override void Send(byte[] buffer, IPEndPoint IPAddress)
