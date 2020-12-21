@@ -105,15 +105,13 @@ namespace AnthillNet.Unity
             tickTimeDestination = 0;
             this.Transport.Start(ip, port, run_clock: false);
             isRunning = true;
+
             this.OnStart?.Invoke();
             if (HostType == HostType.Client)
                 this.Send(new Message(0, "CONNECTION TEST"));
         }
         public void Stop()
         {
-            Transport.Dispose();
-            if (!isRunning)
-                return;
             isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
