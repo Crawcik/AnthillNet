@@ -44,6 +44,7 @@ namespace AnthillNet
             bool server = this.Type == HostType.Client,
                 client = this.Type == HostType.Server;
             this.Interpreter = new Interpreter(server, client);
+            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
             this.Order = new Order(this.Interpreter);
 
             this.Transport.OnStop += OnStopped;
@@ -174,7 +175,7 @@ namespace AnthillNet
                 }
             }
         }
-        private void Interpreter_OnMessageGenerate(object sender, Message message) => Send(message);
+        private void Interpreter_OnMessageGenerate(object sender, Message message, object target) => Send(message);
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
         {
             switch (Uri.CheckHostName(hostname))

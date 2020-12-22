@@ -61,12 +61,14 @@ namespace AnthillNet.Core
         public virtual void Stop()
         {
             this.Logging.Log($"Stopped", LogType.Info);
+            this.HostSocket.Close();
             this.ForceOff = true;
         }
         public virtual void Tick() => this.OnTick?.Invoke(this);
         public virtual void ForceStop() { 
-            if(this.Active)
+            if(this.Active && this.Async)
                 this.Clock.Abort();
+            this.HostSocket.Close();
             this.Logging.Log($"Stopped", LogType.Info);
         }
         public virtual void Pause() => this.isPause = true;
