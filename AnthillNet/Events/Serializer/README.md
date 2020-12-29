@@ -1,0 +1,1 @@
+﻿Code is based on this repository: https://github.com/Sergio0694/BinaryPack
