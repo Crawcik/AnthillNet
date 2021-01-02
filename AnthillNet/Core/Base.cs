@@ -37,8 +37,10 @@ namespace AnthillNet.Core
         public NetworkLog Logging { protected set; get; } = new NetworkLog();
         public System.Net.IPAddress HostIP { private set; get; }
         public ushort Port { private set; get; }
-        public byte TickRate { set; get; }
-        public bool Async { set; get; }
+        public byte TickRate { set; get; } = 8;
+        public bool Async { set; get; } = true;
+        public AddressFamily AddressType { set; get; } = AddressFamily.InterNetwork;
+        public bool DualChannels { set; get; } = true;
         public int MaxMessageSize { set; get; } = 1024;
         public bool Active => Async ? this.Clock.IsAlive : !this.ForceOff;
         #endregion
@@ -56,10 +58,12 @@ namespace AnthillNet.Core
             this.Protocol = protocol;
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
+            if (this.DualChannels)
+                this.AddressType = AddressFamily.InterNetworkV6;
             if (protocol == ProtocolType.TCP)
-                this.HostSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                this.HostSocket = new Socket(AddressType, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
-                this.HostSocket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+                this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
         }
         public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
@@ -67,6 +71,8 @@ namespace AnthillNet.Core
             this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
+            if (DualChannels)
+                this.HostSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
             if(run_clock)
                 this.Clock.Start();
             this.Logging.Log($"Started at {port} port", LogType.Info);
@@ -81,7 +87,7 @@ namespace AnthillNet.Core
         public virtual void ForceStop() { 
             if(this.Active && this.Async)
                 this.Clock.Abort();
-            ForceOff = true;
+            this.ForceOff = true;
             this.HostSocket.Close();
             this.Logging.Log($"Stopped", LogType.Info);
         }
