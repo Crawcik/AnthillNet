@@ -40,7 +40,7 @@ namespace AnthillNet.Core
         public byte TickRate { set; get; }
         public bool Async { set; get; }
         public int MaxMessageSize { set; get; } = 1024;
-        public bool Active => Async ? this.Clock.IsAlive : this.HostSocket != null;
+        public bool Active => Async ? this.Clock.IsAlive : !this.ForceOff;
         #endregion
 
         #region Variables
@@ -81,6 +81,7 @@ namespace AnthillNet.Core
         public virtual void ForceStop() { 
             if(this.Active && this.Async)
                 this.Clock.Abort();
+            ForceOff = true;
             this.HostSocket.Close();
             this.Logging.Log($"Stopped", LogType.Info);
         }
