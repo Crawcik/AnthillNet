@@ -163,15 +163,15 @@ namespace AnthillNet
         {
             foreach (Packet packet in packets)
             {
-                if (packet.data.Length > this.Transport.MaxMessageSize)
-                    this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", LogType.Warning);
+                if (packet.Data.Length > this.Transport.MaxMessageSize)
+                    this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", LogType.Warning);
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
+                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch
                 {
-                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}!", LogType.Warning);
+                    this.Transport.Logging.Log($"Failed deserializing message from {packet.Connection.EndPoint}!", LogType.Warning);
                 }
             }
         }
