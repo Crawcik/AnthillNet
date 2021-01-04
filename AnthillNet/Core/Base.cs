@@ -22,6 +22,10 @@ namespace AnthillNet.Core
                         if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
                             Thread.Sleep((int)rest);
                 }
+            } 
+            catch(ThreadInterruptedException)
+            {
+                this.Logging.Log($"Handling thread interrupted", LogType.Debug);
             }
             finally
             {
@@ -86,7 +90,7 @@ namespace AnthillNet.Core
         public virtual void Tick() => this.OnTick?.Invoke(this);
         public virtual void ForceStop() { 
             if(this.Active && this.Async)
-                this.Clock.Abort();
+                this.Clock.Interrupt();
             this.ForceOff = true;
             this.HostSocket.Close();
             this.Logging.Log($"Stopped", LogType.Info);
