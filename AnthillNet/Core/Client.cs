@@ -19,21 +19,13 @@ namespace AnthillNet.Core
                 this.HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(ip, port);
             this.connection = new Connection(this.ServerEP);
-            if (this.Async)
-                this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
+            if (base.Async)
+                this.StartAsync();
             else
-                try
-                {
-                    this.HostSocket.Connect(this.ServerEP);
-                    this.ClientConnected();
-                }
-                catch (Exception e)
-                {
-                    if (e is SocketException)
-                        base.InternalHostErrorInvoke(e);
-                }
+                this.StartSync();
             base.Start(ip, port, run_clock);
         }
+
         public override void Stop()
         {
             if (!this.Active) return;
@@ -41,6 +33,7 @@ namespace AnthillNet.Core
             this.HostSocket.Close();
             base.Stop();
         }
+
         public override void ForceStop()
         {
             if (!this.Active) return;
@@ -48,12 +41,14 @@ namespace AnthillNet.Core
             this.HostSocket.Close();
             base.ForceStop();
         }
+
         public override void Disconnect(Connection connection)
         {
             this.HostSocket.Close();
             connection = new Connection();
             base.Disconnect(connection);
         }
+
         public override void Tick()
         {
             if (this.connection.EndPoint != null)
@@ -64,11 +59,12 @@ namespace AnthillNet.Core
                 }
             base.Tick();
         }
+
         public override void Send(byte[] buffer, IPEndPoint IPAddress)
         {
             try
             {
-                if (this.Async)
+                if (base.Async)
                     this.HostSocket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => this.HostSocket.EndSend(ar), null);
                 else
                     this.HostSocket.Send(buffer, 0, buffer.Length, 0);
@@ -78,6 +74,7 @@ namespace AnthillNet.Core
                 base.InternalHostErrorInvoke(e);
             }
         }
+
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
@@ -87,7 +84,6 @@ namespace AnthillNet.Core
         #endregion
 
         #region Private methods
-
         private void ClientConnected()
         {
             this.connection = new Connection(this.HostSocket);
@@ -95,6 +91,13 @@ namespace AnthillNet.Core
             this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             base.Connect(connection);
             this.Logging.Log("Connected to " + this.ServerEP);
+        }
+        #endregion
+
+        #region Async
+        private void StartAsync()
+        {
+            this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
         }
 
         private void WaitForConnection(IAsyncResult ar)
@@ -128,6 +131,22 @@ namespace AnthillNet.Core
             {
                 this.Logging.Log($"Disconnected from {connection.EndPoint}", LogType.Debug);
                 this.Disconnect(connection);
+            }
+        }
+        #endregion
+
+        #region Sync
+        private void StartSync()
+        {
+            try
+            {
+                this.HostSocket.Connect(this.ServerEP);
+                this.ClientConnected();
+            }
+            catch (Exception e)
+            {
+                if (e is SocketException)
+                    base.InternalHostErrorInvoke(e);
             }
         }
         #endregion

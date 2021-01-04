@@ -21,21 +21,20 @@ namespace AnthillNet.Core
         {
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             this.HostSocket.Bind(endPoint);
-            if (this.Protocol == ProtocolType.TCP)
-            {
-                this.HostSocket.Listen(100);
-                this.HostSocket.BeginAccept(this.WaitForConnection, null);
 
-            }
+            if (this.Protocol == ProtocolType.TCP)
+                this.HostSocket.Listen(100);
             else if(this.Protocol == ProtocolType.UDP)
-            {
                 this.LastEndPoint = new IPEndPoint(IPAddress.Any, port);
-                Connection stack = new Connection(endPoint){ tempBuffer = new byte[this.MaxMessageSize] };
-                this.HostSocket.BeginReceiveFrom(stack.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
-            }
+
+            if (base.Async)
+                this.StartAsync();
+            else
+                this.StartSync();
             this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
             base.Start(ip, port, run_clock);
         }
+
         public override void Stop()
         {
             if (!this.Active) return;
@@ -70,12 +69,28 @@ namespace AnthillNet.Core
         {
             lock (this.Dictionary)
             {
+                if (base.Protocol == ProtocolType.UDP || !this.Async)
+                {
+                    while (this.HostSocket.Available > 0)
+                    {
+                        byte[] buffer = new byte[this.MaxMessageSize];
+                        this.HostSocket.ReceiveFrom(buffer, 0, buffer.Length, 0, ref LastEndPoint);
+                        if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                        {
+                            this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
+                            this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
+                            base.Connect(new Connection((IPEndPoint)this.LastEndPoint));
+                        }
+                        this.Dictionary[this.LastEndPoint.ToString()].Add(buffer);
+                    }
+                }
                 foreach (Connection connection in this.Dictionary.Values)
                     if (connection.MessagesCount > 0)
                     {
                         base.IncomingMessagesInvoke(connection);
                         connection.ClearMessages();
                     }
+
             }
             base.Tick();
         }
@@ -114,7 +129,19 @@ namespace AnthillNet.Core
         }
         #endregion
 
-        #region Private methods
+        #region Async
+        private void StartAsync()
+        {
+            if (this.Protocol == ProtocolType.TCP)
+            {
+                this.HostSocket.BeginAccept(this.WaitForConnection, null);
+            }
+            else if (this.Protocol == ProtocolType.UDP)
+            {
+                Connection stack = new Connection(LastEndPoint as IPEndPoint) { tempBuffer = new byte[this.MaxMessageSize] };
+                this.HostSocket.BeginReceiveFrom(stack.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
+            }
+        }
         private void WaitForConnection(IAsyncResult ar)
         {
             try
@@ -141,7 +168,6 @@ namespace AnthillNet.Core
             try
             {
                 connection.Socket.EndReceive(ar);
-
                 connection.Add(connection.tempBuffer);
                 connection.Socket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
             }
@@ -176,10 +202,17 @@ namespace AnthillNet.Core
             {
                 this.HostSocket.Close();
             }
-            catch(ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
-           
+
             }
+        }
+        #endregion
+
+        #region Sync
+        private void StartSync()
+        {
+            
         }
         #endregion
     }
