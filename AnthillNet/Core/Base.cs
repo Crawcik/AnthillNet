@@ -53,12 +53,14 @@ namespace AnthillNet.Core
         private readonly Thread Clock;
         private bool isPause;
         private bool ForceOff;
+        private bool initialized;
         protected Socket HostSocket;
         #endregion
 
         #region Controlling functionality
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
+
             this.Protocol = protocol;
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
@@ -68,9 +70,12 @@ namespace AnthillNet.Core
                 this.HostSocket = new Socket(AddressType, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
             else if(protocol == ProtocolType.UDP)
                 this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            initialized = true;
         }
         public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
+            if(!initialized)
+            return;
             this.HostIP = ip;
             this.Port = port;
             this.ForceOff = false;
@@ -102,6 +107,8 @@ namespace AnthillNet.Core
         public virtual void Send(byte[] buffer, IPEndPoint IPAddress) { }
         public virtual void Dispose() 
         {
+            if(!initialized)
+                return;
 #if !(NET20 || NET35)
             this.HostSocket.Dispose();
 #endif

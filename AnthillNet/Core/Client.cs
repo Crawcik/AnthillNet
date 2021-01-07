@@ -15,6 +15,7 @@ namespace AnthillNet.Core
         public override void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
             if (this.Active) return;
+            base.Start(ip, port, run_clock);
             if(this.Protocol == ProtocolType.UDP)
                 this.HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(ip, port);
@@ -23,7 +24,6 @@ namespace AnthillNet.Core
                 this.StartAsync();
             else
                 this.StartSync();
-            base.Start(ip, port, run_clock);
         }
 
         public override void Stop()

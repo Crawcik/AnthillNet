@@ -19,9 +19,11 @@ namespace AnthillNet.Core
         #region Public methods
         public override void Start(IPAddress ip, ushort port, bool run_clock = true)
         {
+            if(this.Active)
+                return;
+            base.Start(ip, port, run_clock);
             IPEndPoint endPoint = new IPEndPoint(ip, port);
             this.HostSocket.Bind(endPoint);
-
             if (this.Protocol == ProtocolType.TCP)
                 this.HostSocket.Listen(100);
             else if(this.Protocol == ProtocolType.UDP)
