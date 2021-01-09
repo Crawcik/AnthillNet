@@ -22,8 +22,8 @@ namespace AnthillNet.Core
             if(this.Active)
                 return;
             base.Start(ip, port, run_clock);
-            IPEndPoint endPoint = new IPEndPoint(ip, port);
-            this.HostSocket.Bind(endPoint);
+
+            this.HostSocket.Bind(new IPEndPoint(ip, port) as EndPoint);
             if (this.Protocol == ProtocolType.TCP)
                 this.HostSocket.Listen(100);
             else if(this.Protocol == ProtocolType.UDP)

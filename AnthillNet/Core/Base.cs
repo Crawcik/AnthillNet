@@ -76,12 +76,18 @@ namespace AnthillNet.Core
         {
             if(!initialized)
             return;
+            this.AddressType = ip.AddressFamily;
             this.HostIP = ip;
             this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
-            if (DualChannels)
-                this.HostSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+            if (this.DualChannels)
+            {
+                if(ip.AddressFamily == AddressFamily.InterNetworkV6)
+                    this.HostSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
+                else
+                    this.Logging.Log("Address type has invalid type to use dual channels", LogType.Warning);
+            }
             if(run_clock)
                 this.Clock.Start();
             this.Logging.Log($"Started at {port} port", LogType.Info);
