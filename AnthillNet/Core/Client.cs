@@ -44,7 +44,8 @@ namespace AnthillNet.Core
 
         public override void Disconnect(Connection connection)
         {
-            this.HostSocket.Close();
+            if (this.HostSocket != null)
+                this.HostSocket.Close();
             connection = new Connection();
             base.Disconnect(connection);
         }
@@ -78,7 +79,8 @@ namespace AnthillNet.Core
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
-            this.ForceStop();
+            if(this.Active)
+                this.ForceStop();
             base.Dispose();
         }
         #endregion

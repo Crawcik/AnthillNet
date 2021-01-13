@@ -122,8 +122,6 @@ namespace AnthillNet
         }
         public void Dispose()
         {
-            if (this.Transport.Active)
-                this.Transport.ForceStop();
             this.Transport.Dispose();
         }
         #endregion
@@ -132,8 +130,6 @@ namespace AnthillNet
         private void OnStopped(object sender)
         {
             isRunning = false;
-            this.Transport.Logging.Log($"Stopped", LogType.Info);
-            this.Transport.Dispose();
         }
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {

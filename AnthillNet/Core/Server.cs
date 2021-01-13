@@ -45,15 +45,7 @@ namespace AnthillNet.Core
                 foreach (Connection connection in this.Dictionary.Values)
                     connection.Socket.Close();
             this.Dictionary.Clear();
-            this.HostSocket.Close();
             base.Stop();
-        }
-        public override void ForceStop()
-        {
-            if (!this.Active) return;
-            this.Logging.Log($"Force stopping...", LogType.Debug);
-            this.HostSocket.Close();
-            base.ForceStop();
         }
         public override void Disconnect(Connection connection)
         {
@@ -71,7 +63,7 @@ namespace AnthillNet.Core
         {
             lock (this.Dictionary)
             {
-                if (base.Protocol == ProtocolType.UDP || !this.Async)
+                if (base.Protocol == ProtocolType.UDP || this.Async)
                 {
                     while (this.HostSocket.Available > 0)
                     {
@@ -126,7 +118,8 @@ namespace AnthillNet.Core
         {
             this.Logging.Log($"Disposing", LogType.Debug);
             this.Dictionary.Clear();
-            this.ForceStop();
+            if (this.Active)
+                base.ForceStop();
             base.Dispose();
         }
         #endregion

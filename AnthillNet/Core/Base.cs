@@ -7,50 +7,21 @@ namespace AnthillNet.Core
 {
     public abstract class Base
     {
-        #region Initializer
-        protected Base() => Clock = new Thread(() =>
-        {
-            try
-            {
-                double rest;
-                while (!this.ForceOff)
-                {
-                    DateTime before_tick = DateTime.Now;
-                    if (!this.isPause)
-                        this.Tick();
-                    if(TickRate != 0)
-                        if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
-                            Thread.Sleep((int)rest);
-                }
-            } 
-            catch(ThreadInterruptedException)
-            {
-                this.Logging.Log($"Handling thread interrupted", LogType.Debug);
-            }
-            finally
-            {
-                this.ForceOff = true;
-            }
-            this.OnStop?.Invoke(this);
-        })
-        { IsBackground = true };
-        #endregion
-
         #region Properties
         public ProtocolType Protocol { protected set; get; }
-        public NetworkLog Logging { protected set; get; } = new NetworkLog();
+        public NetworkLog Logging { protected set; get; }
         public System.Net.IPAddress HostIP { private set; get; }
         public ushort Port { private set; get; }
         public byte TickRate { set; get; } = 8;
         public bool Async { set; get; } = true;
         public AddressFamily AddressType { set; get; } = AddressFamily.InterNetwork;
-        public bool DualChannels { set; get; } = true;
+        public bool DualChannels { set; get; } = false;
         public int MaxMessageSize { set; get; } = 1024;
         public bool Active => Async ? this.Clock.IsAlive : !this.ForceOff;
         #endregion
 
-        #region Variables
-        private readonly Thread Clock;
+        #region Fields
+        private Thread Clock;
         private bool isPause;
         private bool ForceOff;
         private bool initialized;
@@ -60,16 +31,38 @@ namespace AnthillNet.Core
         #region Controlling functionality
         public virtual void Init(ProtocolType protocol, byte tickRate = 32)
         {
-
+            Clock = new Thread(() =>
+            {
+                try
+                {
+                    double rest;
+                    while (!this.ForceOff)
+                    {
+                        DateTime before_tick = DateTime.Now;
+                        if (!this.isPause)
+                            this.Tick();
+                        if (TickRate != 0)
+                            if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
+                                Thread.Sleep((int)rest);
+                    }
+                }
+                catch (ThreadInterruptedException)
+                {
+                    this.Logging.Log($"Handling thread interrupted", LogType.Debug);
+                }
+                finally
+                {
+                    this.ForceOff = true;
+                }
+                this.OnStop?.Invoke(this);
+            })
+            { IsBackground = true };
+            this.Logging = new NetworkLog();
             this.Protocol = protocol;
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
             if (this.DualChannels)
                 this.AddressType = AddressFamily.InterNetworkV6;
-            if (protocol == ProtocolType.TCP)
-                this.HostSocket = new Socket(AddressType, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-            else if(protocol == ProtocolType.UDP)
-                this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
             initialized = true;
         }
         public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
@@ -81,6 +74,13 @@ namespace AnthillNet.Core
             this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
+            if (this.HostSocket == null)
+            {
+                if (Protocol == ProtocolType.TCP)
+                    this.HostSocket = new Socket(AddressType, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
+                else if (Protocol == ProtocolType.UDP)
+                    this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
+            }
             if (this.DualChannels)
             {
                 if(ip.AddressFamily == AddressFamily.InterNetworkV6)
@@ -88,19 +88,24 @@ namespace AnthillNet.Core
                 else
                     this.Logging.Log("Address type has invalid type to use dual channels", LogType.Warning);
             }
-            if(run_clock)
+            if (run_clock && !this.Clock.IsAlive)
+            {
                 this.Clock.Start();
+                this.Async = true;
+            }
             this.Logging.Log($"Started at {port} port", LogType.Info);
         }
         public virtual void Stop()
         {
+            if (!this.Active) return;
             this.Logging.Log($"Stopped", LogType.Info);
             this.HostSocket.Close();
             this.ForceOff = true;
         }
         public virtual void Tick() => this.OnTick?.Invoke(this);
-        public virtual void ForceStop() { 
-            if(this.Active && this.Async)
+        public virtual void ForceStop() {
+            this.Logging.Log($"Force stopping...", LogType.Debug);
+            if (this.Active && this.Async)
                 this.Clock.Interrupt();
             this.ForceOff = true;
             this.HostSocket.Close();
@@ -119,6 +124,10 @@ namespace AnthillNet.Core
             this.HostSocket.Dispose();
 #endif
             this.HostSocket = null;
+            initialized = false;
+            Logging = null;
+            Clock = null;
+            HostIP = null;
         }
         #endregion
 
