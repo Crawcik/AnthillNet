@@ -9,13 +9,16 @@ namespace AnthillNet.Core
         private Connection connection;
         private IPEndPoint ServerEP;
 
-        public Client() => this.Logging.LogName = "Client";
-
         #region Public methods
-        public override void Start(IPAddress ip, ushort port, bool run_clock = true)
+        public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
+        {
+            base.Init(protocol, async, tickRate);
+            base.Logging.LogName = "Client";
+        }
+        public override void Start(IPAddress ip, ushort port)
         {
             if (this.Active) return;
-            base.Start(ip, port, run_clock);
+            base.Start(ip, port);
             if(this.Protocol == ProtocolType.UDP)
                 this.HostSocket.EnableBroadcast = true;
             this.ServerEP = new IPEndPoint(ip, port);

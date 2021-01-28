@@ -10,10 +10,8 @@ namespace AnthillNet.Core
         #region Properties
         public ProtocolType Protocol { protected set; get; }
         public NetworkLog Logging { protected set; get; }
-        public System.Net.IPAddress HostIP { private set; get; }
-        public ushort Port { private set; get; }
         public byte TickRate { set; get; } = 8;
-        public bool Async { set; get; } = true;
+        public bool Async { private set; get; }
         public AddressFamily AddressType { set; get; } = AddressFamily.InterNetwork;
         public bool DualChannels { set; get; } = false;
         public int MaxMessageSize { set; get; } = 1024;
@@ -29,71 +27,74 @@ namespace AnthillNet.Core
         #endregion
 
         #region Controlling functionality
-        public virtual void Init(ProtocolType protocol, byte tickRate = 32)
+        public virtual void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
         {
-            Clock = new Thread(() =>
+            if (async)
             {
-                try
+                this.Clock = new Thread(() =>
                 {
-                    double rest;
-                    while (!this.ForceOff)
+                    try
                     {
-                        DateTime before_tick = DateTime.Now;
-                        if (!this.isPause)
-                            this.Tick();
-                        if (TickRate != 0)
-                            if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
-                                Thread.Sleep((int)rest);
+                        double rest;
+                        while (!this.ForceOff)
+                        {
+                            DateTime before_tick = DateTime.Now;
+                            if (!this.isPause)
+                                this.Tick();
+                            if (TickRate != 0)
+                                if ((rest = 1000 / TickRate - (DateTime.Now - before_tick).TotalMilliseconds) > 0)
+                                    Thread.Sleep((int)rest);
+                        }
                     }
-                }
-                catch (ThreadInterruptedException)
-                {
-                    this.Logging.Log($"Handling thread interrupted", LogType.Debug);
-                }
-                finally
-                {
-                    this.ForceOff = true;
-                }
-                this.OnStop?.Invoke(this);
-            })
-            { IsBackground = true };
+                    catch (ThreadInterruptedException)
+                    {
+                        this.Logging.Log($"Handling thread interrupted", LogType.Debug);
+                    }
+                    finally
+                    {
+                        this.ForceOff = true;
+                    }
+                    this.OnStop?.Invoke(this);
+                })
+                { IsBackground = true };
+            }
             this.Logging = new NetworkLog();
+            this.Async = async;
             this.Protocol = protocol;
             this.Logging.Log($"Start initializing with {tickRate} tick rate", LogType.Info);
             this.TickRate = tickRate;
             if (this.DualChannels)
                 this.AddressType = AddressFamily.InterNetworkV6;
-            initialized = true;
+            this.initialized = true;
         }
-        public virtual void Start(IPAddress ip, ushort port, bool run_clock = true)
+
+        public virtual void Start(IPAddress ip, ushort port)
         {
-            if(!initialized)
-            return;
+            if(!this.initialized || this.Active)
+                return;
             this.AddressType = ip.AddressFamily;
-            this.HostIP = ip;
-            this.Port = port;
             this.ForceOff = false;
             this.isPause = false;
             if (this.HostSocket == null)
             {
-                if (Protocol == ProtocolType.TCP)
+                if (this.Protocol == ProtocolType.TCP)
                     this.HostSocket = new Socket(AddressType, SocketType.Stream, System.Net.Sockets.ProtocolType.Tcp);
-                else if (Protocol == ProtocolType.UDP)
+                else if (this.Protocol == ProtocolType.UDP)
                     this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
             }
             if (this.DualChannels)
             {
-                if(ip.AddressFamily == AddressFamily.InterNetworkV6)
+                if (ip.AddressFamily == AddressFamily.InterNetworkV6)
                     this.HostSocket.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, false);
                 else
                     this.Logging.Log("Address type has invalid type to use dual channels", LogType.Warning);
             }
-            if (run_clock && !this.Clock.IsAlive)
+            if (this.Async && !this.Clock.IsAlive)
             {
                 this.Clock.Start();
                 this.Async = true;
             }
-            this.Logging.Log($"Started at {port} port", LogType.Info);
+            this.Logging.Log($"Starting host", LogType.Info);
         }
         public virtual void Stop()
         {
@@ -127,7 +128,6 @@ namespace AnthillNet.Core
             initialized = false;
             Logging = null;
             Clock = null;
-            HostIP = null;
         }
         #endregion
 

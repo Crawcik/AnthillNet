@@ -16,6 +16,7 @@ namespace AnthillNet
         public HostSettings Settings { set; get; } = new HostSettings()
         {
             Name = null,
+            Port = 8000,
             MaxConnections = 0,
             MaxDataSize = 4096,
             TickRate = 8,
@@ -53,24 +54,29 @@ namespace AnthillNet
         #endregion
 
         #region Public methods
-        public void Start(string hostname, ushort port)
+        public void Start(params string[] hostname)
         {
-            this.Transport.Logging.LogPriority = this.Settings.LogPriority;
+            this.Transport.Init(this.Settings.Protocol, this.Settings.Async, this.Settings.TickRate);
+
             if (this.Settings.Name != null)
                 this.Transport.Logging.LogName = this.Settings.Name;
             if (this.Settings.WriteLogsToConsole)
                 this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             else
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
+            this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
-            this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
-            this.Transport.Async = this.Settings.Async;
+
             IPAddress ip;
-            if (!this.ResolveIP(hostname, out ip))
-                return;
-            this.Transport.Start(ip, port, true);
+            foreach (string addr in hostname)
+            {
+                if (!this.ResolveIP(addr, out ip))
+                    return;
+                this.Transport.Start(ip, this.Settings.Port);
+            }
         }
-        public void Start(ushort port) => this.Start("127.0.0.1", port);
+        public void Start(string hostname) => Start(new string[] { hostname });
+        public void Start() => Start(IPAddress.Loopback.ToString());
         public void Stop() 
         {
             isRunning = false;
