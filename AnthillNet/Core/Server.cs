@@ -8,34 +8,52 @@ namespace AnthillNet.Core
     public sealed class Server : Base
     {
         public readonly Dictionary<string, Connection> Dictionary;
+        private readonly List<IPEndPoint> BindedEndpoint;
         private EndPoint LastEndPoint;
 
         public Server()
         {
-            this.Logging.LogName = "Server";
             this.Dictionary = new Dictionary<string, Connection>();
+            this.BindedEndpoint = new List<IPEndPoint>();
         }
 
         #region Public methods
-        public override void Start(IPAddress ip, ushort port, bool run_clock = true)
+        public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
         {
-            IPEndPoint endPoint = new IPEndPoint(ip, port);
-            this.HostSocket.Bind(endPoint);
-            if (this.Protocol == ProtocolType.TCP)
+            if(protocol == ProtocolType.TCP && !async)
             {
-                this.HostSocket.Listen(100);
-                this.HostSocket.BeginAccept(this.WaitForConnection, null);
-
-            }
-            else if(this.Protocol == ProtocolType.UDP)
-            {
-                this.LastEndPoint = new IPEndPoint(IPAddress.Any, port);
-                Connection stack = new Connection(endPoint){ tempBuffer = new byte[this.MaxMessageSize] };
-                this.HostSocket.BeginReceiveFrom(stack.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
-            }
-            this.Logging.Log($"Starting listening on port {port} with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
-            base.Start(ip, port, run_clock);
+                this.Logging.Log("Async TCP server is currently not suported!", LogType.Error);
+                return;
+            }    
+            base.Init(protocol, async, tickRate);
+            base.Logging.LogName = "Server";
         }
+
+        public override void Start(IPAddress ip, ushort port)
+        {
+            if(!this.Active)
+                base.Start(ip, port);
+            IPEndPoint endPoint = new IPEndPoint(ip, port);
+            if (!BindedEndpoint.Contains(endPoint))
+            {
+                BindedEndpoint.Add(endPoint);
+                this.HostSocket.Bind(endPoint);
+                this.Logging.Log($"{ip}:{port} added to pool", LogType.Debug);
+            }
+            if (BindedEndpoint.Count == 1)
+            {
+                if (base.Protocol == ProtocolType.TCP)
+                    this.HostSocket.Listen(100);
+                else if (base.Protocol == ProtocolType.UDP)
+                    this.LastEndPoint = new IPEndPoint(IPAddress.Any, port);
+                if (base.Async)
+                    this.StartAsync();
+                else
+                    this.StartSync();
+                this.Logging.Log($"Starting listening with {Enum.GetName(typeof(ProtocolType), this.Protocol)} protocol", LogType.Debug);
+            }
+        }
+
         public override void Stop()
         {
             if (!this.Active) return;
@@ -44,15 +62,8 @@ namespace AnthillNet.Core
                 foreach (Connection connection in this.Dictionary.Values)
                     connection.Socket.Close();
             this.Dictionary.Clear();
-            this.HostSocket.Close();
+            this.BindedEndpoint.Clear();
             base.Stop();
-        }
-        public override void ForceStop()
-        {
-            if (!this.Active) return;
-            this.Logging.Log($"Force stopping...", LogType.Debug);
-            this.HostSocket.Close();
-            base.ForceStop();
         }
         public override void Disconnect(Connection connection)
         {
@@ -68,12 +79,47 @@ namespace AnthillNet.Core
         }
         public override void Tick()
         {
-            foreach (Connection connection in this.Dictionary.Values)
-                if (connection.MessagesCount > 0)
+            lock (this.Dictionary)
+            {
+                if (!this.Async)
                 {
-                    base.IncomingMessagesInvoke(connection);
-                    connection.ClearMessages();
+                    if (base.Protocol == ProtocolType.UDP)
+                    {
+                        try
+                        {
+                            while (this.HostSocket.Available > 0)
+                            {
+                                byte[] buffer = new byte[this.MaxMessageSize];
+                                this.HostSocket.ReceiveFrom(buffer, 0, buffer.Length, 0, ref LastEndPoint);
+                                if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                                {
+                                    this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
+                                    this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
+                                    base.Connect(new Connection(this.LastEndPoint as IPEndPoint));
+                                }
+                                this.Dictionary[this.LastEndPoint.ToString()].Add(buffer);
+                            }
+                        }
+                        catch (SocketException)
+                        {
+                            this.HostSocket.Close();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+
+                        }
+                    }
                 }
+                foreach (Connection connection in this.Dictionary.Values)
+                {
+                    if (connection.MessagesCount > 0)
+                    {
+                        base.IncomingMessagesInvoke(connection);
+                        connection.ClearMessages();
+                    }
+                }
+
+            }
             base.Tick();
         }
         public override void Send(byte[] buffer, IPEndPoint IPAddress)
@@ -106,12 +152,26 @@ namespace AnthillNet.Core
         {
             this.Logging.Log($"Disposing", LogType.Debug);
             this.Dictionary.Clear();
-            this.ForceStop();
+            this.BindedEndpoint.Clear();
+            if (this.Active)
+                base.ForceStop();
             base.Dispose();
         }
         #endregion
 
-        #region Private methods
+        #region Async
+        private void StartAsync()
+        {
+            if (this.Protocol == ProtocolType.TCP)
+            {
+                this.HostSocket.BeginAccept(this.WaitForConnection, null);
+            }
+            else if (this.Protocol == ProtocolType.UDP)
+            {
+                Connection stack = new Connection(LastEndPoint as IPEndPoint) { tempBuffer = new byte[this.MaxMessageSize] };
+                this.HostSocket.BeginReceiveFrom(stack.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, WaitForMessageFrom, stack);
+            }
+        }
         private void WaitForConnection(IAsyncResult ar)
         {
             try
@@ -138,7 +198,6 @@ namespace AnthillNet.Core
             try
             {
                 connection.Socket.EndReceive(ar);
-
                 connection.Add(connection.tempBuffer);
                 connection.Socket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
             }
@@ -173,10 +232,17 @@ namespace AnthillNet.Core
             {
                 this.HostSocket.Close();
             }
-            catch(ObjectDisposedException)
+            catch (ObjectDisposedException)
             {
-           
+
             }
+        }
+        #endregion
+
+        #region Sync
+        private void StartSync()
+        {
+            
         }
         #endregion
     }

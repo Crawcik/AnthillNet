@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net45</TargetFrameworks>
     <LangVersion>8</LangVersion>
     <Authors>Crawcik</Authors>
     <Product />
     <Description>Universal .NET networking library</Description>
-    <Copyright>GNU General Public License v2.0</Copyright>
+    <Copyright>MIT Licence 2021</Copyright>
     <PackageProjectUrl>https://github.com/Crawcik/AnthillNet</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Crawcik/AnthillNet</RepositoryUrl>
   </PropertyGroup>

@@ -11,5 +11,6 @@ bld/
 [Oo]bj/
 [Ll]og/
 .vs/
+.vscode/
 UnitTest/
 **/*.csproj.user

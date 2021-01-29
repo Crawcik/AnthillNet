@@ -1,4 +1,4 @@
-﻿namespace AnthillNet
+﻿namespace AnthillNet.Core
 {
     public enum ProtocolType
     {

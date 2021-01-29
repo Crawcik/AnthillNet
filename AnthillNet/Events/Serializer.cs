@@ -41,6 +41,10 @@ namespace AnthillNet.Events
             {
                 new BinaryFormatter().Serialize(stream, value);
             }
+            catch
+            {
+                stream.Dispose();
+            }
             finally
             {
                 stream.Close();

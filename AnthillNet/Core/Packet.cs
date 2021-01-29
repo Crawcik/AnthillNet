@@ -1,14 +1,14 @@
 ﻿namespace AnthillNet.Core
 {
-    public struct Packet
+    public readonly struct Packet
     {
-        public readonly Connection connection;
-        public readonly byte[] data;
+        public readonly Connection Connection { get; }
+        public readonly byte[] Data { get; }
 
         internal Packet(Connection connection, byte[] data)
         {
-            this.connection = connection;
-            this.data = data;
+            this.Connection = connection;
+            this.Data = data;
         }
     }
 }

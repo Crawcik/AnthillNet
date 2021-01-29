@@ -13,7 +13,23 @@ namespace AnthillNet
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
         public HostType Type { private set; get; }
-        public HostSettings Settings { set; get; }
+        public HostSettings Settings { set; get; } = new HostSettings()
+        {
+            Name = null,
+            Port = 8000,
+            MaxConnections = 0,
+            MaxDataSize = 4096,
+            TickRate = 8,
+            DualChannels = true,
+            Async = true,
+            WriteLogsToConsole = true,
+            Protocol = ProtocolType.TCP,
+            LogPriority = LogType.Error
+        };
+        #endregion
+
+        #region Fields
+        private bool isRunning;
         #endregion
 
         #region Initializers
@@ -26,20 +42,10 @@ namespace AnthillNet
                 _ => throw new NotImplementedException()
 
             };
-            this.Settings = new HostSettings()
-            {
-                Name = null,
-                MaxConnections = 20,
-                MaxDataSize = 4096,
-                TickRate = 8,
-                Async = true,
-                WriteLogsToConsole = true,
-                Protocol = ProtocolType.TCP,
-                LogPriority = LogType.Error
-            };
             bool server = this.Type == HostType.Client,
                 client = this.Type == HostType.Server;
             this.Interpreter = new Interpreter(server, client);
+            this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
             this.Order = new Order(this.Interpreter);
 
             this.Transport.OnStop += OnStopped;
@@ -48,30 +54,36 @@ namespace AnthillNet
         #endregion
 
         #region Public methods
-        public void Start(string hostname, ushort port)
+        public void Start(params string[] hostname)
         {
-            this.Transport.Logging.LogPriority = this.Settings.LogPriority;
+            this.Transport.Init(this.Settings.Protocol, this.Settings.Async, this.Settings.TickRate);
+
             if (this.Settings.Name != null)
                 this.Transport.Logging.LogName = this.Settings.Name;
             if (this.Settings.WriteLogsToConsole)
                 this.Transport.Logging.OnNetworkLog += OnNetworkLog;
             else
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
+            this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
-            this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
-            this.Transport.Async = this.Settings.Async;
+
             IPAddress ip;
-            if (!this.ResolveIP(hostname, out ip))
-                return;
-            this.Transport.Start(ip, port, true);
+            foreach (string addr in hostname)
+            {
+                if (!this.ResolveIP(addr, out ip))
+                    return;
+                this.Transport.Start(ip, this.Settings.Port);
+            }
         }
-        public void Start(ushort port) => this.Start("127.0.0.1", port);
+        public void Start(string hostname) => Start(new string[] { hostname });
+        public void Start() => Start(IPAddress.Loopback.ToString());
         public void Stop() 
         {
+            isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
             else
-                this.Transport.Logging.Log($"{this.Transport.Logging.LogName} is already stopped", LogType.Info);
+                this.Transport.Logging.Log($"{this.Transport.Logging.LogName} is already stopped", AnthillNet.Core.LogType.Info);
         }
         public void SendTo(Message message, string connection)
         {
@@ -116,8 +128,6 @@ namespace AnthillNet
         }
         public void Dispose()
         {
-            if (this.Transport.Active)
-                this.Transport.ForceStop();
             this.Transport.Dispose();
         }
         #endregion
@@ -125,8 +135,7 @@ namespace AnthillNet
         #region Private methods
         private void OnStopped(object sender)
         {
-            this.Transport.Logging.Log($"Stopped", LogType.Info);
-            this.Transport.Dispose();
+            isRunning = false;
         }
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
@@ -156,19 +165,19 @@ namespace AnthillNet
         {
             foreach (Packet packet in packets)
             {
-                if (packet.data.Length > this.Transport.MaxMessageSize)
-                    this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", LogType.Warning);
+                if (packet.Data.Length > this.Transport.MaxMessageSize)
+                    this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", LogType.Warning);
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
+                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch
                 {
-                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}!", LogType.Warning);
+                    this.Transport.Logging.Log($"Failed deserializing message from {packet.Connection.EndPoint}!", LogType.Warning);
                 }
             }
         }
-        private void Interpreter_OnMessageGenerate(object sender, Message message) => Send(message);
+        private void Interpreter_OnMessageGenerate(object sender, Message message, object target) => Send(message);
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
         {
             switch (Uri.CheckHostName(hostname))
