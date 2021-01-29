@@ -26,7 +26,6 @@ namespace AnthillNet.Core
 
         public override void Start(IPAddress ip, ushort port)
         {
-
             if(!this.Active)
                 base.Start(ip, port);
             IPEndPoint endPoint = new IPEndPoint(ip, port);
@@ -81,26 +80,39 @@ namespace AnthillNet.Core
                 {
                     if (base.Protocol == ProtocolType.UDP)
                     {
-                        while (this.HostSocket.Available > 0)
+                        try
                         {
-                            byte[] buffer = new byte[this.MaxMessageSize];
-                            this.HostSocket.ReceiveFrom(buffer, 0, buffer.Length, 0, ref LastEndPoint);
-                            if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                            while (this.HostSocket.Available > 0)
                             {
-                                this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
-                                this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
-                                base.Connect(new Connection(this.LastEndPoint as IPEndPoint));
+                                byte[] buffer = new byte[this.MaxMessageSize];
+                                this.HostSocket.ReceiveFrom(buffer, 0, buffer.Length, 0, ref LastEndPoint);
+                                if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                                {
+                                    this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
+                                    this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
+                                    base.Connect(new Connection(this.LastEndPoint as IPEndPoint));
+                                }
+                                this.Dictionary[this.LastEndPoint.ToString()].Add(buffer);
                             }
-                            this.Dictionary[this.LastEndPoint.ToString()].Add(buffer);
+                        }
+                        catch (SocketException)
+                        {
+                            this.HostSocket.Close();
+                        }
+                        catch (ObjectDisposedException)
+                        {
+
                         }
                     }
                 }
                 foreach (Connection connection in this.Dictionary.Values)
+                {
                     if (connection.MessagesCount > 0)
                     {
                         base.IncomingMessagesInvoke(connection);
                         connection.ClearMessages();
                     }
+                }
 
             }
             base.Tick();

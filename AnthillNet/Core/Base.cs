@@ -21,8 +21,8 @@ namespace AnthillNet.Core
         #region Fields
         private Thread Clock;
         private bool isPause;
-        private bool ForceOff;
-        private bool initialized;
+        private bool ForceOff = true;
+        private bool initialized = false;
         protected Socket HostSocket;
         #endregion
 

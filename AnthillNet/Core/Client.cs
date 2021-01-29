@@ -8,6 +8,7 @@ namespace AnthillNet.Core
     {
         private Connection connection;
         private IPEndPoint ServerEP;
+        private bool isConnecting;
 
         #region Public methods
         public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
@@ -55,6 +56,33 @@ namespace AnthillNet.Core
 
         public override void Tick()
         {
+            if(!base.Async)
+            {
+                try
+                {
+                    while (this.HostSocket.Available > 0)
+                    {
+                        if (this.isConnecting)
+                        {
+                            base.Connect(connection);
+                            this.isConnecting = false;
+                        }
+                        this.HostSocket.Receive(this.connection.tempBuffer, 0, this.MaxMessageSize, 0);
+                        this.connection.Add(connection.tempBuffer);
+                        this.connection.tempBuffer = new byte[this.MaxMessageSize];
+                    }
+                }
+                catch (SocketException)
+                {
+                    this.Logging.Log($"{connection.EndPoint} closed connection ", LogType.Warning);
+                    this.Disconnect(connection);
+                }
+                catch (ObjectDisposedException)
+                {
+                    this.Logging.Log($"Disconnected from {connection.EndPoint}", LogType.Debug);
+                    this.Disconnect(connection);
+                }
+            }
             if (this.connection.EndPoint != null)
                 if (this.connection.MessagesCount > 0)
                 {
@@ -91,17 +119,16 @@ namespace AnthillNet.Core
         #region Private methods
         private void ClientConnected()
         {
+            this.Logging.Log("Connecting to " + this.ServerEP, LogType.Debug);
             this.connection = new Connection(this.HostSocket);
             this.connection.tempBuffer = new byte[this.MaxMessageSize];
-            this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
-            base.Connect(connection);
-            this.Logging.Log("Connected to " + this.ServerEP);
         }
         #endregion
 
         #region Async
         private void StartAsync()
         {
+            this.isConnecting = true;
             this.HostSocket.BeginConnect(this.ServerEP, this.WaitForConnection, null);
         }
 
@@ -109,8 +136,14 @@ namespace AnthillNet.Core
         {
             try
             {
-                this.HostSocket.EndConnect(ar);
                 this.ClientConnected();
+                this.HostSocket.EndConnect(ar);
+                this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+                if (base.Protocol == ProtocolType.TCP && this.isConnecting)
+                {
+                    base.Connect(connection);
+                    this.isConnecting = false;
+                }
             }
             catch (SocketException e)
             {
@@ -123,8 +156,13 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceive(ar);
+                if (base.Protocol == ProtocolType.UDP && this.isConnecting)
+                {
+                    base.Connect(connection);
+                    this.isConnecting = false;
+                }
                 this.connection.Add(connection.tempBuffer);
-                connection.tempBuffer = new byte[this.MaxMessageSize];
+                this.connection.tempBuffer = new byte[this.MaxMessageSize];
                 this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
             }
             catch (SocketException)
