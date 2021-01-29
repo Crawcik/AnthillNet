@@ -20,6 +20,11 @@ namespace AnthillNet.Core
         #region Public methods
         public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
         {
+            if(protocol == ProtocolType.TCP && !async)
+            {
+                this.Logging.Log("Async TCP server is currently not suported!", LogType.Error);
+                return;
+            }    
             base.Init(protocol, async, tickRate);
             base.Logging.LogName = "Server";
         }
