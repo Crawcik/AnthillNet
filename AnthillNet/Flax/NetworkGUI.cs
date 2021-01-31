@@ -19,16 +19,19 @@ namespace AnthillNet.Flax
             if (!SpawnGUI())
                 return;
             (host.Control as Button).Clicked += () => {
+                Debug.Log(1);
                 NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
+                Debug.Log(2);
                 NetworkManager.Instance.hostType = AnthillNet.HostType.Server;
-                NetworkManager.Instance.Run();
+                NetworkManager.Instance.StopHost();
+                Debug.Log(3);
             };
             (connect.Control as Button).Clicked += () => {
                 NetworkManager.Instance.hostname = (IP.Control as TextBox).Text;
                 NetworkManager.Instance.hostType = AnthillNet.HostType.Client;
-                NetworkManager.Instance.Run();
+                NetworkManager.Instance.StartHost();
             };
-            (stop.Control as Button).Clicked += () => NetworkManager.Instance.Stop();
+            (stop.Control as Button).Clicked += () => NetworkManager.Instance.StartHost();
         }
 
         private bool SpawnGUI()

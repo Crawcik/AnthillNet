@@ -19,13 +19,13 @@ namespace AnthillNet.Flax
 
             layout.Button(NetworkGUI.hostText, Color.DarkSlateGray).Button.Clicked += () => {
                 NetworkManager.Instance.hostType = AnthillNet.HostType.Server;
-                NetworkManager.Instance.Run();
+                NetworkManager.Instance.StartHost();
             };
             layout.Button(NetworkGUI.connectText, Color.DarkSlateGray).Button.Clicked += () => {
                 NetworkManager.Instance.hostType = AnthillNet.HostType.Client;
-                NetworkManager.Instance.Run();
+                NetworkManager.Instance.StartHost();
             };
-            layout.Button(NetworkGUI.stopText, Color.DarkSlateGray).Button.Clicked += () => NetworkManager.Instance.Stop();
+            layout.Button(NetworkGUI.stopText, Color.DarkSlateGray).Button.Clicked += () => NetworkManager.Instance.StopHost();
             var dispose = layout.Button(NetworkGUI.disposeTest, Color.DarkSlateGray);
             dispose.Button.Clicked += () => NetworkManager.Instance.Dispose();
             dispose.Button.TextColor = Color.IndianRed;
