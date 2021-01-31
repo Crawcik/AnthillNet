@@ -46,8 +46,6 @@ namespace AnthillNet.Flax
         #region Overrides
         public override void OnAwake()
         {
-            DontDestoyOnLoad(this);
-
             if (Instance != null)
                 return;
             Instance = this;
@@ -71,7 +69,11 @@ namespace AnthillNet.Flax
         #region Public methods
         public void Run()
         {
-
+            if(this.Transport != null)
+            {
+                if (this.Transport.Active)
+                    return;
+            }    
             this.Settings = settings;
             this.HostType = hostType;
             if (this.HostType == HostType.Server)
@@ -87,6 +89,8 @@ namespace AnthillNet.Flax
             this.Transport.OnReceiveData += OnRevieceMessage;
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
 
+            this.Transport.Init(this.Settings.Protocol, this.Settings.Async, this.Settings.TickRate);
+
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             if (this.Settings.Name != null)
                 this.Transport.Logging.LogName = this.Settings.Name;
@@ -96,14 +100,12 @@ namespace AnthillNet.Flax
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
 
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
-            this.Transport.Init(this.Settings.Protocol, this.Settings.TickRate);
-            this.Transport.Async = this.Settings.Async;
             IPAddress ip;
             if (!this.ResolveIP(hostname, out ip))
                 return;
             tickTimeNow = 0;
             tickTimeDestination = 0;
-            this.Transport.Start(ip, port, run_clock: false);
+            this.Transport.Start(ip, port);
             isRunning = true;
 
             this.OnStart?.Invoke();
@@ -161,15 +163,15 @@ namespace AnthillNet.Flax
         {
             foreach (Packet packet in packets)
             {
-                if (packet.data.Length > this.Transport.MaxMessageSize)
-                    this.Transport.Logging.Log($"Received data from {packet.connection.EndPoint} is too big!", AnthillNet.Core.LogType.Warning);
+                if (packet.Data.Length > this.Transport.MaxMessageSize)
+                    this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", AnthillNet.Core.LogType.Warning);
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.data));
+                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch(Exception e)
                 {
-                    this.Transport.Logging.Log($"Failed deserializing message from {packet.connection.EndPoint}! {e.ToString()}", AnthillNet.Core.LogType.Warning);
+                    this.Transport.Logging.Log($"Failed deserializing message from {packet.Connection.EndPoint}! {e.ToString()}", AnthillNet.Core.LogType.Warning);
                 }
             }
         }
@@ -246,11 +248,6 @@ namespace AnthillNet.Flax
                 }
             }
             else this.Transport.Logging.Log("Message data is too big!", AnthillNet.Core.LogType.Error);
-        }
-
-        private void DontDestoyOnLoad(NetworkManager networkManager)
-        {
-            //Not complited
         }
         #endregion
     }
