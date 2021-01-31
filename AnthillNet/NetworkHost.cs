@@ -3,17 +3,33 @@ using AnthillNet.Events;
 
 using System;
 using System.Net;
+using System.Collections.Generic;
 
 namespace AnthillNet
 {
     public class Host : IDisposable
     {
         #region Properties
+        public IReadOnlyDictionary<string, IConnection> Connections { private set; get; }
         public Base Transport { private set; get; }
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
         public HostType Type { private set; get; }
-        public HostSettings Settings { set; get; } = new HostSettings()
+        public HostSettings Settings
+        {
+            set
+            {
+                if (this.Transport.Active)
+                    this.Transport.Logging.Log("Cannot change settings while running!", LogType.Warning);
+                else
+                    settings = value;
+            }
+            get => settings;
+        }
+        #endregion
+
+        #region Fields
+        private HostSettings settings = new HostSettings() 
         {
             Name = null,
             Port = 8000,
@@ -28,33 +44,40 @@ namespace AnthillNet
         };
         #endregion
 
-        #region Fields
-        private bool isRunning;
-        #endregion
-
         #region Initializers
         private Host() { }
         public Host(HostType type) {
-            this.Transport = (this.Type = type) switch
+            switch (type)
             {
-                HostType.Server => new Server(),
-                HostType.Client => new Client(),
-                _ => throw new NotImplementedException()
-
-            };
-            bool server = this.Type == HostType.Client,
-                client = this.Type == HostType.Server;
+                case HostType.Server:
+                    this.Transport = new Server();
+                    break;
+                case HostType.Client:
+                    this.Transport = new Client();
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+            this.Type = type;
+            bool server = this.Type == HostType.Server,
+                client = this.Type == HostType.Client;
             this.Interpreter = new Interpreter(server, client);
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
             this.Order = new Order(this.Interpreter);
-
-            this.Transport.OnStop += OnStopped;
             this.Transport.OnReceiveData += OnRevieceMessage;
+            this.Connections = new Dictionary<string, IConnection>();
         }
         #endregion
 
         #region Public methods
-        public void Start(params string[] hostname)
+        public void Start() => Start(this.Type == HostType.Server ? IPAddress.Any: IPAddress.Loopback);
+        public void Start(string hostname)
+        {
+            IPAddress ip;
+            if (this.ResolveIP(hostname, out ip))
+                Start(ip);
+        }
+        public void Start(IPAddress address)
         {
             this.Transport.Init(this.Settings.Protocol, this.Settings.Async, this.Settings.TickRate);
 
@@ -66,20 +89,27 @@ namespace AnthillNet
                 this.Transport.Logging.OnNetworkLog -= OnNetworkLog;
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
+            this.Transport.OnConnect += Transport_OnConnect;
+            this.Transport.OnDisconnect += Transport_OnDisconnect;
 
-            IPAddress ip;
-            foreach (string addr in hostname)
+            this.Transport.Start(address, this.Settings.Port);
+        }
+
+        private void Transport_OnDisconnect(object sender, IConnection connection)
+        {
+            if (this.Type == HostType.Server)
             {
-                if (!this.ResolveIP(addr, out ip))
-                    return;
-                this.Transport.Start(ip, this.Settings.Port);
+                if ((this.Transport as Server).Connections != null)
+                    this.Connections = (this.Transport as Server).Connections;
+            }
+            else if(this.Type == HostType.Client)
+            {
+                this.Stop();
             }
         }
-        public void Start(string hostname) => Start(new string[] { hostname });
-        public void Start() => Start(IPAddress.Loopback.ToString());
+
         public void Stop() 
         {
-            isRunning = false;
             if (this.Transport.Active)
                 this.Transport.Stop();
             else
@@ -93,8 +123,8 @@ namespace AnthillNet
                 if (this.Type == HostType.Server)
                 {
                     Server server = this.Transport as Server;
-                    if(server.Dictionary.ContainsKey(connection))
-                        this.Transport.Send(buf, server.Dictionary[connection].EndPoint);
+                    if (server.Connections.ContainsKey(connection))
+                        this.Transport.Send(buf, server.Connections[connection].EndPoint);
                     else
                         this.Transport.Logging.Log($"Client {connection} isn't connected!", LogType.Warning);
 
@@ -115,7 +145,7 @@ namespace AnthillNet
                 if (this.Type == HostType.Server)
                 {
                     Server server = this.Transport as Server;
-                    foreach (Connection ip in server.Dictionary.Values)
+                    foreach (Connection ip in server.Connections.Values)
                         this.Transport.Send(buf, ip.EndPoint);
 
                 }
@@ -133,10 +163,6 @@ namespace AnthillNet
         #endregion
 
         #region Private methods
-        private void OnStopped(object sender)
-        {
-            isRunning = false;
-        }
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
             Console.Write($"[{e.Time:HH:mm:ss}]");
@@ -169,7 +195,8 @@ namespace AnthillNet
                     this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", LogType.Warning);
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
+                    if(this.Type == HostType.Client || this.Connections.ContainsKey(packet.Connection.EndPoint.ToString()))
+                        this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch
                 {
@@ -178,8 +205,27 @@ namespace AnthillNet
             }
         }
         private void Interpreter_OnMessageGenerate(object sender, Message message, object target) => Send(message);
+
+        private void Transport_OnConnect(object sender, IConnection connection)
+        {
+            if(this.Type == HostType.Server)
+            {
+                if (this.Connections.Count >= this.Settings.MaxConnections && this.Settings.MaxConnections != 0)
+                {
+                    this.Transport.Disconnect(connection);
+                }
+                else
+                {
+                    var x = (this.Transport as Server).Connections;
+                    if (x != null)
+                        this.Connections = (this.Transport as Server).Connections;
+                } 
+            }
+        }
+
         private bool ResolveIP(string hostname, out IPAddress iPAddress)
         {
+            this.Transport.Logging.Log("Resolving address "+ hostname, LogType.Debug);
             switch (Uri.CheckHostName(hostname))
             {
                 case UriHostNameType.IPv4:
