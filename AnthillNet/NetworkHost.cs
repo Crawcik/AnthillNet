@@ -51,7 +51,6 @@ namespace AnthillNet
             {
                 case HostType.Server:
                     this.Transport = new Server();
-                    this.Connections = (this.Transport as Server).Connections;
                     break;
                 case HostType.Client:
                     this.Transport = new Client();
@@ -59,27 +58,26 @@ namespace AnthillNet
                 default:
                     throw new NotImplementedException();
             }
-            bool server = this.Type == HostType.Client,
-                client = this.Type == HostType.Server;
+            this.Type = type;
+            bool server = this.Type == HostType.Server,
+                client = this.Type == HostType.Client;
             this.Interpreter = new Interpreter(server, client);
             this.Interpreter.OnMessageGenerate += Interpreter_OnMessageGenerate;
             this.Order = new Order(this.Interpreter);
             this.Transport.OnReceiveData += OnRevieceMessage;
+            this.Connections = new Dictionary<string, IConnection>();
         }
         #endregion
 
         #region Public methods
-        public void Start(params string[] hostname)
+        public void Start() => Start(this.Type == HostType.Server ? IPAddress.Any: IPAddress.Loopback);
+        public void Start(string hostname)
         {
             IPAddress ip;
-            IPAddress[] addresses = new IPAddress[hostname.Length];
-            for (int _index = 0; _index < hostname.Length; _index++)
-            {
-                if (this.ResolveIP(hostname[_index], out ip))
-                    addresses[_index] = ip;
-            }
+            if (this.ResolveIP(hostname, out ip))
+                Start(ip);
         }
-        public void Start(params IPAddress[] addresses)
+        public void Start(IPAddress address)
         {
             this.Transport.Init(this.Settings.Protocol, this.Settings.Async, this.Settings.TickRate);
 
@@ -92,15 +90,9 @@ namespace AnthillNet
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
             this.Transport.OnConnect += Transport_OnConnect;
-            foreach (IPAddress addr in addresses)
-            {
-                if(addr != null)
-                    this.Transport.Start(addr, this.Settings.Port);
-            }
-        }
 
-        public void Start(string hostname) => Start(new string[] { hostname });
-        public void Start() => Start(Dns.GetHostEntry(Dns.GetHostName()).AddressList);
+            this.Transport.Start(address, this.Settings.Port);
+        }
         public void Stop() 
         {
             if (this.Transport.Active)
@@ -116,7 +108,7 @@ namespace AnthillNet
                 if (this.Type == HostType.Server)
                 {
                     Server server = this.Transport as Server;
-                    if(server.Connections.ContainsKey(connection))
+                    if (server.Connections.ContainsKey(connection))
                         this.Transport.Send(buf, server.Connections[connection].EndPoint);
                     else
                         this.Transport.Logging.Log($"Client {connection} isn't connected!", LogType.Warning);
@@ -188,7 +180,8 @@ namespace AnthillNet
                     this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", LogType.Warning);
                 try
                 {
-                    this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
+                    if(this.Connections.ContainsKey(packet.Connection.EndPoint.ToString()))
+                        this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch
                 {
@@ -202,8 +195,16 @@ namespace AnthillNet
         {
             if(this.Type == HostType.Server)
             {
-                if (this.Connections.Count > this.Settings.MaxConnections)
+                if (this.Connections.Count >= this.Settings.MaxConnections)
                     this.Transport.Disconnect(connection);
+                else
+                {
+                    var x = (this.Transport as Server).Connections;
+                    if (x == null)
+                    {
+                    }
+                    this.Connections = (this.Transport as Server).Connections;
+                } 
             }
         }
 
@@ -226,7 +227,7 @@ namespace AnthillNet
                     }
                     break;
             }
-            this.Transport.Logging.Log("Given hostname is invalid!", LogType.Warning);
+            this.Transport.Logging.Log("Given hostname is invalid!", LogType.Error);
             iPAddress = null;
             return false;
         }

@@ -8,7 +8,7 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        public IReadOnlyDictionary<string, IConnection> Connections { get => (IReadOnlyDictionary<string, IConnection>)this.Dictionary; }
+        public IReadOnlyDictionary<string,IConnection> Connections => this.Dictionary.ToDictionary(x=>x.Key,x=>(IConnection)x.Value);
         private Dictionary<string, Connection> Dictionary { get; } = new Dictionary<string, Connection>();
         private List<IPEndPoint> BindedEndpoint { get; } = new List<IPEndPoint>();
         private EndPoint LastEndPoint;

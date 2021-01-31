@@ -1,9 +1,9 @@
 ﻿namespace AnthillNet.Core
 {
-    public readonly struct Packet
+    public struct Packet
     {
-        public readonly Connection Connection { get; }
-        public readonly byte[] Data { get; }
+        public IConnection Connection { get; }
+        public byte[] Data { get; }
 
         internal Packet(Connection connection, byte[] data)
         {
