@@ -13,6 +13,7 @@ namespace AnthillNet.Flax
     public class NetworkManager : Script
     {
         public delegate void NetworkEvent();
+        public delegate void NetworkConnect(string connection);
 
         #region Properties
         public static NetworkManager Instance { private set; get; }
@@ -56,7 +57,7 @@ namespace AnthillNet.Flax
         #region Events
         public event NetworkEvent OnStartEvent, OnStartAsServerEvent, OnStartAsClientEvent;
         public event NetworkEvent OnStopEvent, OnStopAsServerEvent, OnStopAsClienEventt;
-        public event NetworkEvent OnClientConnectEvent, OnClientDisconnectEvent;
+        public event NetworkConnect OnClientConnectEvent, OnClientDisconnectEvent;
         #endregion
 
         #region Overrides
@@ -127,14 +128,17 @@ namespace AnthillNet.Flax
             this.Transport.Start(ip, port);
             isRunning = true;
 
+            this.OnStartHost();
             this.OnStartEvent?.Invoke();
             if (this.Type == HostType.Client)
             {
+                this.OnStartAsClient();
                 this.OnStartAsClientEvent?.Invoke();
                 this.Send(new Message(0, "CONNECTION TEST"));
             }
-            else if(this.Type == HostType.Server)
+            else if (this.Type == HostType.Server)
             {
+                this.OnStartAsServer();
                 this.OnStartAsServerEvent?.Invoke();
             }
         }
@@ -162,11 +166,19 @@ namespace AnthillNet.Flax
         private void OnStopped(object sender)
         {
             isRunning = false;
-            this.Transport.Logging.Log($"Stopped", AnthillNet.Core.LogType.Info);
+            this.OnStopHost();
+            this.OnStopEvent?.Invoke();
             if (this.Type == HostType.Client)
+            {
+                this.OnStopAsClient();
                 this.OnStopAsClienEventt?.Invoke();
+            }
             else if (this.Type == HostType.Server)
+            {
+                this.OnStopAsClient();
                 this.OnStopAsServerEvent?.Invoke();
+            }
+            this.Transport.Logging.Log($"Stopped", AnthillNet.Core.LogType.Info);
             this.Transport.OnStop -= OnStopped;
             this.Transport.Dispose();
         }
@@ -206,7 +218,7 @@ namespace AnthillNet.Flax
                 }
             }
         }
-        private void Interpreter_OnMessageGenerate(object sender, Message message, string target) 
+        private void Interpreter_OnMessageGenerate(object sender, Message message, string target)
         {
             if (string.IsNullOrEmpty(target))
                 Send(message);
@@ -294,7 +306,8 @@ namespace AnthillNet.Flax
                     var x = (this.Transport as Server).Connections;
                     if (x != null)
                         this.Connections = (this.Transport as Server).Connections;
-                    this.OnClientConnectEvent?.Invoke();
+                    this.OnClientConnect(connection.EndPoint.ToString());
+                    this.OnClientConnectEvent?.Invoke(connection.EndPoint.ToString());
                 }
             }
         }
@@ -304,14 +317,25 @@ namespace AnthillNet.Flax
             {
                 if ((this.Transport as Server).Connections != null)
                     this.Connections = (this.Transport as Server).Connections;
-                this.OnClientDisconnectEvent?.Invoke();
-
+                this.OnClientDisconnect(connection.EndPoint.ToString());
+                this.OnClientDisconnectEvent?.Invoke(connection.EndPoint.ToString());
             }
             else if (this.Type == HostType.Client)
             {
                 this.StopHost();
             }
         }
+        #endregion
+
+        #region Event methods
+        public virtual void OnStartHost() { }
+        public virtual void OnStartAsServer() { }
+        public virtual void OnStartAsClient() { }
+        public virtual void OnStopHost() { }
+        public virtual void OnStopAsServer() { }
+        public virtual void OnStopAsClient() { }
+        public virtual void OnClientConnect(string connection) { }
+        public virtual void OnClientDisconnect(string connection) { }
         #endregion
     }
 }
