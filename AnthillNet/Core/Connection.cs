@@ -4,9 +4,9 @@ using System.Net.Sockets;
 
 namespace AnthillNet.Core
 {
-    public struct Connection
+    public struct Connection : IConnection
     {
-        public Connection(IPEndPoint address)
+        internal Connection(IPEndPoint address)
         {
             this.EndPoint = address;
             this.messages = new List<Packet>();
@@ -22,13 +22,13 @@ namespace AnthillNet.Core
         }
 
         #region Properties
-        public int MessagesCount => this.messages.Count;
-        public IPEndPoint EndPoint { private set; get; }
-        internal Socket Socket { private set; get; }
-        internal byte[] tempBuffer;
+        public int MessagesCount { get => this.messages.Count; }
+        public IPEndPoint EndPoint { get; }
+        internal Socket Socket { get; }
+        private List<Packet> messages { get; }
         #endregion
 
-        private readonly List<Packet> messages;
+        internal byte[] tempBuffer;
 
         #region Methods
         internal void Add(byte[] message) => this.messages.Add(new Packet(this,message));
@@ -36,4 +36,13 @@ namespace AnthillNet.Core
         public Packet[] GetMessages() => this.messages.ToArray();
         #endregion
     }
+
+    #region
+    public interface IConnection
+    {
+        public IPEndPoint EndPoint { get; }
+        public int MessagesCount { get; }
+        public Packet[] GetMessages();
+    }
+    #endregion
 }

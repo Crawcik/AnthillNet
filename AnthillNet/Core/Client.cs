@@ -46,7 +46,7 @@ namespace AnthillNet.Core
             base.ForceStop();
         }
 
-        public override void Disconnect(Connection connection)
+        public override void Disconnect(IConnection connection)
         {
             if (this.HostSocket != null)
                 this.HostSocket.Close();

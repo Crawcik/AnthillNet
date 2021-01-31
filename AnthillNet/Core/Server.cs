@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -7,15 +8,10 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        public readonly Dictionary<string, Connection> Dictionary;
-        private readonly List<IPEndPoint> BindedEndpoint;
+        public IReadOnlyDictionary<string, IConnection> Connections { get => (IReadOnlyDictionary<string, IConnection>)this.Dictionary; }
+        private Dictionary<string, Connection> Dictionary { get; } = new Dictionary<string, Connection>();
+        private List<IPEndPoint> BindedEndpoint { get; } = new List<IPEndPoint>();
         private EndPoint LastEndPoint;
-
-        public Server()
-        {
-            this.Dictionary = new Dictionary<string, Connection>();
-            this.BindedEndpoint = new List<IPEndPoint>();
-        }
 
         #region Public methods
         public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
@@ -65,16 +61,16 @@ namespace AnthillNet.Core
             this.BindedEndpoint.Clear();
             base.Stop();
         }
-        public override void Disconnect(Connection connection)
+        public override void Disconnect(IConnection connection)
         {
+            Connection conn = (Connection)connection;
             if (this.Protocol == ProtocolType.TCP)
             {
-                connection.Socket.Shutdown(SocketShutdown.Both);
-                connection.Socket.Close();
+                conn.Socket.Shutdown(SocketShutdown.Both);
+                conn.Socket.Close();
             }
             this.Dictionary.Remove(connection.EndPoint.ToString());
             this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Info);
-            connection = new Connection();
             base.Disconnect(connection);
         }
         public override void Tick()
@@ -242,7 +238,7 @@ namespace AnthillNet.Core
         #region Sync
         private void StartSync()
         {
-            
+            throw new NotSupportedException();
         }
         #endregion
     }

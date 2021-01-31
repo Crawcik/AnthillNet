@@ -114,8 +114,8 @@ namespace AnthillNet.Core
         }
         public virtual void Pause() => this.isPause = true;
         public virtual void Resume() => this.isPause = false;
-        public virtual void Connect(Connection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
-        public virtual void Disconnect(Connection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
+        public virtual void Connect(IConnection connection) { if (this.OnConnect != null) this.OnConnect.Invoke(this, connection); }
+        public virtual void Disconnect(IConnection connection) { if(this.OnDisconnect != null) this.OnDisconnect.Invoke(this, connection); }
         public virtual void Send(byte[] buffer, IPEndPoint IPAddress) { }
         public virtual void Dispose() 
         {
@@ -133,8 +133,8 @@ namespace AnthillNet.Core
 
         #region Delegates
         public delegate void TickHandler(object sender);
-        public delegate void ConnectHandler(object sender, Connection connection);
-        public delegate void DisconnectHandler(object sender, Connection connection);
+        public delegate void ConnectHandler(object sender, IConnection connection);
+        public delegate void DisconnectHandler(object sender, IConnection connection);
         public delegate void IncomingMessagesHandler(object sender, Packet[] packets);
         public delegate void InternalHostErrorHandler(object sender, System.Exception exception);
         public delegate void StopHandler(object sender);
