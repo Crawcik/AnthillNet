@@ -52,9 +52,11 @@ namespace AnthillNet.Flax
         };
         private bool isRunning;
         private float tickTimeDestination, tickTimeNow;
+
         #endregion
 
         #region Events
+        public event NetworkEvent OnTick;
         public event NetworkEvent OnStartEvent, OnStartAsServerEvent, OnStartAsClientEvent;
         public event NetworkEvent OnStopEvent, OnStopAsServerEvent, OnStopAsClienEventt;
         public event NetworkConnect OnClientConnectEvent, OnClientDisconnectEvent;
@@ -77,6 +79,7 @@ namespace AnthillNet.Flax
             if (tickTimeNow >= tickTimeDestination)
             {
                 this.Transport.Tick();
+                this.OnTick?.Invoke();
                 tickTimeDestination = tickTimeNow + (1f / this.Settings.TickRate);
             }
             tickTimeNow += Time.DeltaTime;
