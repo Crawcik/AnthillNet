@@ -163,7 +163,15 @@ namespace AnthillNet.Core
                 }
                 this.connection.Add(connection.tempBuffer);
                 this.connection.tempBuffer = new byte[this.MaxMessageSize];
-                this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+                if (!this.HostSocket.Connected)
+                {
+                    this.Logging.Log($"{connection.EndPoint} closed connection ", LogType.Warning);
+                    this.Disconnect(connection);
+                }
+                else
+                {
+                    this.HostSocket.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, null);
+                }
             }
             catch (SocketException)
             {

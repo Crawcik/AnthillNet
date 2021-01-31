@@ -90,9 +90,24 @@ namespace AnthillNet
             this.Transport.Logging.LogPriority = this.Settings.LogPriority;
             this.Transport.MaxMessageSize = this.Settings.MaxDataSize;
             this.Transport.OnConnect += Transport_OnConnect;
+            this.Transport.OnDisconnect += Transport_OnDisconnect;
 
             this.Transport.Start(address, this.Settings.Port);
         }
+
+        private void Transport_OnDisconnect(object sender, IConnection connection)
+        {
+            if (this.Type == HostType.Server)
+            {
+                if ((this.Transport as Server).Connections != null)
+                    this.Connections = (this.Transport as Server).Connections;
+            }
+            else if(this.Type == HostType.Client)
+            {
+                this.Stop();
+            }
+        }
+
         public void Stop() 
         {
             if (this.Transport.Active)
@@ -180,7 +195,7 @@ namespace AnthillNet
                     this.Transport.Logging.Log($"Received data from {packet.Connection.EndPoint} is too big!", LogType.Warning);
                 try
                 {
-                    if(this.Connections.ContainsKey(packet.Connection.EndPoint.ToString()))
+                    if(this.Type == HostType.Client || this.Connections.ContainsKey(packet.Connection.EndPoint.ToString()))
                         this.Interpreter.ResolveMessage(Message.Deserialize(packet.Data));
                 }
                 catch
@@ -195,15 +210,15 @@ namespace AnthillNet
         {
             if(this.Type == HostType.Server)
             {
-                if (this.Connections.Count >= this.Settings.MaxConnections)
+                if (this.Connections.Count >= this.Settings.MaxConnections && this.Settings.MaxConnections != 0)
+                {
                     this.Transport.Disconnect(connection);
+                }
                 else
                 {
                     var x = (this.Transport as Server).Connections;
-                    if (x == null)
-                    {
-                    }
-                    this.Connections = (this.Transport as Server).Connections;
+                    if (x != null)
+                        this.Connections = (this.Transport as Server).Connections;
                 } 
             }
         }
