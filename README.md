@@ -22,13 +22,13 @@
 #### Example code for server or client:
 ```cs
 using AnthillNet;
+using AnthillNet.Core;
 using AnthillNet.Events;
 
 using System;
 
 public class Program
 {
-    public const string myIP = "192.168.1.100"; //Try to not use loopback ip (127.0.0.1), it could not work between two pc's
     public const ushort myPort = 7777;
 
     public static void Main() => new Program().Run();
@@ -37,7 +37,8 @@ public class Program
     {
         HostSettings settings = new HostSettings()
         {
-            LogPriority = AnthillNet.Core.LogType.Info,
+            LogPriority = LogType.Info,
+            Port = 8000,
             Protocol = ProtocolType.TCP,
             TickRate = 8,
             Async = true,
@@ -49,7 +50,7 @@ public class Program
         Host host = new Host(HostType.Server); //Or HostType.Client for client obviously
         host.Settings = settings;
 
-        host.Start(myIP, myPort); //Connecting or starting server
+        host.Start(); //You can also set IP but then you can only connect through this one
         host.Send(new Message(0, "Test")); //Sending simple message (destinies from 1 to 100 are reserved for events, orders, pings etc. if you using AnthillNet.Events)
         while (true)
         {
