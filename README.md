@@ -50,7 +50,7 @@ public class Program
         Host host = new Host(HostType.Server); //Or HostType.Client for client obviously
         host.Settings = settings;
 
-        host.Start(); //You can also set IP but then you can only connect through this one
+        host.Start(); //FOR SERVER: You can also set IP but then you can only connect through this one
         host.Send(new Message(0, "Test")); //Sending simple message (destinies from 1 to 100 are reserved for events, orders, pings etc. if you using AnthillNet.Events)
         while (true)
         {
