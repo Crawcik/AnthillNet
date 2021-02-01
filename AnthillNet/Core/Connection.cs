@@ -6,14 +6,14 @@ namespace AnthillNet.Core
 {
     public struct Connection : IConnection
     {
-        internal Connection(IPEndPoint address)
+        public Connection(IPEndPoint address)
         {
             this.EndPoint = address;
             this.messages = new List<Packet>();
             this.Socket = null;
             this.tempBuffer = null;
         }
-        internal Connection(Socket socket)
+        public Connection(Socket socket)
         {
             this.EndPoint = socket.RemoteEndPoint as IPEndPoint;
             this.messages = new List<Packet>();
@@ -40,9 +40,9 @@ namespace AnthillNet.Core
     #region
     public interface IConnection
     {
-        public IPEndPoint EndPoint { get; }
-        public int MessagesCount { get; }
-        public Packet[] GetMessages();
+        IPEndPoint EndPoint { get; }
+        int MessagesCount { get; }
+        Packet[] GetMessages();
     }
     #endregion
 }
