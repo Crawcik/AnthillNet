@@ -15,6 +15,9 @@ jobs:
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
       
+    - name: Install dependencies
+      run: dotnet restore
+      
     - name: Build Solution
       run: |
         msbuild.exe AnthillNet.sln /nologo /nr:false /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:platform="Any CPU" /p:configuration="Release" /p:PublishUrl="../_build"
