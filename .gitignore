@@ -14,3 +14,4 @@ bld/
 .vscode/
 UnitTest/
 **/*.csproj.user
+TestResults/
