@@ -10,7 +10,11 @@ namespace AnthillNet
     public class Host : IDisposable
     {
         #region Properties
+#if NET20 || NET35
+        public Dictionary<string, IConnection> Connections { private set; get; }
+#else
         public IReadOnlyDictionary<string, IConnection> Connections { private set; get; }
+#endif
         public Base Transport { private set; get; }
         public Interpreter Interpreter { private set; get; }
         public Order Order { private set; get; }
@@ -26,9 +30,9 @@ namespace AnthillNet
             }
             get => settings;
         }
-        #endregion
+#endregion
 
-        #region Fields
+#region Fields
         private HostSettings settings = new HostSettings() 
         {
             Name = null,
@@ -42,9 +46,9 @@ namespace AnthillNet
             Protocol = ProtocolType.TCP,
             LogPriority = LogType.Error
         };
-        #endregion
+#endregion
 
-        #region Initializers
+#region Initializers
         private Host() { }
         public Host(HostType type) {
             switch (type)
@@ -67,9 +71,9 @@ namespace AnthillNet
             this.Transport.OnReceiveData += OnRevieceMessage;
             this.Connections = new Dictionary<string, IConnection>();
         }
-        #endregion
+#endregion
 
-        #region Public methods
+#region Public methods
         public void Start() => Start(this.Type == HostType.Server ? IPAddress.Any: IPAddress.Loopback);
         public void Start(string hostname)
         {
@@ -160,9 +164,9 @@ namespace AnthillNet
         {
             this.Transport.Dispose();
         }
-        #endregion
+#endregion
 
-        #region Private methods
+#region Private methods
         private void OnNetworkLog(object sender, NetworkLogArgs e)
         {
             Console.Write($"[{e.Time:HH:mm:ss}]");
@@ -246,6 +250,6 @@ namespace AnthillNet
             iPAddress = null;
             return false;
         }
-        #endregion
+#endregion
     }
 }

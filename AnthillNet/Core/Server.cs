@@ -1,5 +1,7 @@
 ﻿using System;
+#if !NET20
 using System.Linq;
+#endif
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
@@ -8,12 +10,24 @@ namespace AnthillNet.Core
 {
     public sealed class Server : Base
     {
-        public IReadOnlyDictionary<string,IConnection> Connections => this.Dictionary.ToDictionary(x=>x.Key,x=>(IConnection)x.Value);
-        private Dictionary<string, Connection> Dictionary { get; } = new Dictionary<string, Connection>();
+#if NET20 || NET35
+        public Dictionary<string, IConnection> Connections { get {
+#else
+        public IReadOnlyDictionary<string, IConnection> Connections { get {
+#endif
+        Dictionary<string, IConnection> result = new Dictionary<string, IConnection>();
+                foreach (KeyValuePair<string, Connection> pair in ConnDictionary)
+                {
+                    result.Add(pair.Key, pair.Value);
+                }
+                return result;
+            }
+        }
+        private Dictionary<string, Connection> ConnDictionary { get; } = new Dictionary<string, Connection>();
         private List<IPEndPoint> BindedEndpoint { get; } = new List<IPEndPoint>();
         private EndPoint LastEndPoint;
 
-        #region Public methods
+#region Public methods
         public override void Init(ProtocolType protocol, bool async = true, byte tickRate = 32)
         {
             if(protocol == ProtocolType.TCP && !async)
@@ -55,9 +69,9 @@ namespace AnthillNet.Core
             if (!this.Active) return;
             this.Logging.Log($"Stopping...", LogType.Debug);
             if(Protocol == ProtocolType.TCP)
-                foreach (Connection connection in this.Dictionary.Values)
+                foreach (Connection connection in this.ConnDictionary.Values)
                     connection.Socket.Close();
-            this.Dictionary.Clear();
+            this.ConnDictionary.Clear();
             this.BindedEndpoint.Clear();
             base.Stop();
         }
@@ -69,13 +83,13 @@ namespace AnthillNet.Core
                 conn.Socket.Shutdown(SocketShutdown.Both);
                 conn.Socket.Close();
             }
-            this.Dictionary.Remove(connection.EndPoint.ToString());
+            this.ConnDictionary.Remove(connection.EndPoint.ToString());
             this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Info);
             base.Disconnect(connection);
         }
         public override void Tick()
         {
-            lock (this.Dictionary)
+            lock (this.ConnDictionary)
             {
                 if (!this.Async)
                 {
@@ -87,13 +101,13 @@ namespace AnthillNet.Core
                             {
                                 byte[] buffer = new byte[this.MaxMessageSize];
                                 this.HostSocket.ReceiveFrom(buffer, 0, buffer.Length, 0, ref LastEndPoint);
-                                if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                                if (!this.ConnDictionary.ContainsKey(this.LastEndPoint.ToString()))
                                 {
-                                    this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
+                                    this.ConnDictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
                                     this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
                                     base.Connect(new Connection(this.LastEndPoint as IPEndPoint));
                                 }
-                                this.Dictionary[this.LastEndPoint.ToString()].Add(buffer);
+                                this.ConnDictionary[this.LastEndPoint.ToString()].Add(buffer);
                             }
                         }
                         catch (SocketException)
@@ -106,7 +120,7 @@ namespace AnthillNet.Core
                         }
                     }
                 }
-                foreach (Connection connection in this.Dictionary.Values)
+                foreach (Connection connection in this.ConnDictionary.Values)
                 {
                     if (connection.MessagesCount > 0)
                     {
@@ -124,7 +138,7 @@ namespace AnthillNet.Core
             {
                 if (this.Protocol == ProtocolType.TCP)
                 {
-                    Socket socket = this.Dictionary[IPAddress.ToString()].Socket;
+                    Socket socket = this.ConnDictionary[IPAddress.ToString()].Socket;
                     if (this.Async)
                         socket.BeginSend(buffer, 0, buffer.Length, 0, (IAsyncResult ar) => socket.EndSend(ar), null);
                     else
@@ -147,15 +161,15 @@ namespace AnthillNet.Core
         public override void Dispose()
         {
             this.Logging.Log($"Disposing", LogType.Debug);
-            this.Dictionary.Clear();
+            this.ConnDictionary.Clear();
             this.BindedEndpoint.Clear();
             if (this.Active)
                 base.ForceStop();
             base.Dispose();
         }
-        #endregion
+#endregion
 
-        #region Async
+#region Async
         private void StartAsync()
         {
             if (this.Protocol == ProtocolType.TCP)
@@ -176,7 +190,7 @@ namespace AnthillNet.Core
                 Socket client = this.HostSocket.EndAccept(ar);
                 Connection connection = new Connection(client);
                 connection.tempBuffer = new byte[this.MaxMessageSize];
-                this.Dictionary.Add(client.RemoteEndPoint.ToString(), connection);
+                this.ConnDictionary.Add(client.RemoteEndPoint.ToString(), connection);
                 client.BeginReceive(connection.tempBuffer, 0, this.MaxMessageSize, 0, this.WaitForMessage, connection);
                 this.Logging.Log($"Client {client.RemoteEndPoint} connected", LogType.Info);
                 base.Connect(connection);
@@ -200,7 +214,7 @@ namespace AnthillNet.Core
             catch (SocketException)
             {
                 this.Logging.Log($"Client {connection.EndPoint} disconnected", LogType.Warning);
-                this.Dictionary.Remove(connection.EndPoint.ToString());
+                this.ConnDictionary.Remove(connection.EndPoint.ToString());
                 this.Disconnect(connection);
             }
             catch (ObjectDisposedException)
@@ -214,13 +228,13 @@ namespace AnthillNet.Core
             try
             {
                 this.HostSocket.EndReceiveFrom(ar, ref this.LastEndPoint);
-                if (!this.Dictionary.ContainsKey(this.LastEndPoint.ToString()))
+                if (!this.ConnDictionary.ContainsKey(this.LastEndPoint.ToString()))
                 {
-                    this.Dictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
+                    this.ConnDictionary.Add(this.LastEndPoint.ToString(), new Connection(this.LastEndPoint as IPEndPoint));
                     this.Logging.Log($"Client {LastEndPoint} connected", LogType.Info);
                     base.Connect(new Connection((IPEndPoint)this.LastEndPoint));
                 }
-                this.Dictionary[this.LastEndPoint.ToString()].Add(connection.tempBuffer);
+                this.ConnDictionary[this.LastEndPoint.ToString()].Add(connection.tempBuffer);
                 connection.tempBuffer = new byte[MaxMessageSize];
                 this.HostSocket.BeginReceiveFrom(connection.tempBuffer, 0, this.MaxMessageSize, 0, ref this.LastEndPoint, this.WaitForMessageFrom, connection);
             }
@@ -233,13 +247,13 @@ namespace AnthillNet.Core
 
             }
         }
-        #endregion
+#endregion
 
-        #region Sync
+#region Sync
         private void StartSync()
         {
             throw new NotSupportedException();
         }
-        #endregion
+#endregion
     }
 }

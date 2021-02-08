@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net45</TargetFrameworks>
+    <TargetFrameworks>net2;net35;net45;netcoreapp2.0;netcoreapp3.1;net50</TargetFrameworks>
     <LangVersion>8</LangVersion>
     <Authors>Crawcik</Authors>
     <Product />

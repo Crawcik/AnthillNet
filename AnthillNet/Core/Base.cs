@@ -82,6 +82,7 @@ namespace AnthillNet.Core
                 else if (this.Protocol == ProtocolType.UDP)
                     this.HostSocket = new Socket(AddressType, SocketType.Dgram, System.Net.Sockets.ProtocolType.Udp);
             }
+#if !(NET20 || NET35)
             if (this.DualChannels)
             {
                 if (ip.AddressFamily == AddressFamily.InterNetworkV6)
@@ -89,6 +90,7 @@ namespace AnthillNet.Core
                 else
                     this.Logging.Log("Address type has invalid type to use dual channels", LogType.Warning);
             }
+#endif
             if (this.Async && !this.Clock.IsAlive)
             {
                 this.Clock.Start();
@@ -129,27 +131,27 @@ namespace AnthillNet.Core
             Logging = null;
             Clock = null;
         }
-        #endregion
+#endregion
 
-        #region Delegates
+#region Delegates
         public delegate void TickHandler(object sender);
         public delegate void ConnectHandler(object sender, IConnection connection);
         public delegate void DisconnectHandler(object sender, IConnection connection);
         public delegate void IncomingMessagesHandler(object sender, Packet[] packets);
         public delegate void InternalHostErrorHandler(object sender, System.Exception exception);
         public delegate void StopHandler(object sender);
-        #endregion
+#endregion
 
-        #region Events
+#region Events
         public event TickHandler OnTick;
         public event ConnectHandler OnConnect;
         public event DisconnectHandler OnDisconnect;
         public event IncomingMessagesHandler OnReceiveData;
         public event InternalHostErrorHandler OnInternalHostError;
         public event StopHandler OnStop;
-        #endregion
+#endregion
 
-        #region Event Invokers
+#region Event Invokers
         protected void IncomingMessagesInvoke(Connection connection)
         {
             this.Logging.Log($"Message from {connection.EndPoint}: Count {connection.MessagesCount}", LogType.Debug);
@@ -163,6 +165,6 @@ namespace AnthillNet.Core
             if (this.OnInternalHostError != null)
                 this.OnInternalHostError?.Invoke(this, exception);
         }
-        #endregion
+#endregion
     }
 }
