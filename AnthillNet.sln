@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30204.135
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AnthillNet", "AnthillNet\AnthillNet.csproj", "{EC7EFBDF-2072-4AE7-8EC3-1952FAB3D7F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{D2C95E1E-1FB7-4AB7-A9C5-1C6BF0FFE9E7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestingLab", "TestingLab\TestingLab.csproj", "{719FA194-B5A5-47B5-BBD9-FE5D2D8CED07}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{EC7EFBDF-2072-4AE7-8EC3-1952FAB3D7F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EC7EFBDF-2072-4AE7-8EC3-1952FAB3D7F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EC7EFBDF-2072-4AE7-8EC3-1952FAB3D7F8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D2C95E1E-1FB7-4AB7-A9C5-1C6BF0FFE9E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D2C95E1E-1FB7-4AB7-A9C5-1C6BF0FFE9E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D2C95E1E-1FB7-4AB7-A9C5-1C6BF0FFE9E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D2C95E1E-1FB7-4AB7-A9C5-1C6BF0FFE9E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{719FA194-B5A5-47B5-BBD9-FE5D2D8CED07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{719FA194-B5A5-47B5-BBD9-FE5D2D8CED07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{719FA194-B5A5-47B5-BBD9-FE5D2D8CED07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{719FA194-B5A5-47B5-BBD9-FE5D2D8CED07}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
