@@ -1,4 +1,4 @@
-name: .NET Build test (Windows)
+name: .NET Build test (Linux)
 
 on:
   pull_request:
