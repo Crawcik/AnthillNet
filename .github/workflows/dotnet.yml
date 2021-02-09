@@ -21,3 +21,24 @@ jobs:
     - name: Build Solution
       run: |
         msbuild.exe AnthillNet.sln /nologo /nr:false /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:platform="Any CPU" /p:configuration="Release" /p:PublishUrl="../_build"
+  test:
+    runs-on: windows-latest
+    needs: build
+    env:
+      config: 'Release'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set PR Number
+      id: PRNUMBER
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: kkak10/pr-number-action@v1.3
+
+    - name: TCP Test
+      uses: zyborg/dotnet-tests-report@v1
+      with:
+        project_path: TestingLab
+        report_name: TCP Test #${{steps.PRNUMBER.outputs.pr}} (${{github.run_number}})"
+        report_title: AnthillNet Test
+        github_token: ${{ secrets.GITHUB_TOKEN }}
