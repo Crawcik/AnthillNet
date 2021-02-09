@@ -1,4 +1,4 @@
-name: .NET Build test (Linux)
+name: .NET Build test (Windows)
 
 on:
   pull_request:
@@ -7,20 +7,20 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - uses: actions/checkout@v2
     
-    - name: Setup Dotnet
-      uses: actions/setup-dotnet@v1
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1
       
     - name: Install dependencies
       run: dotnet restore
       
     - name: Build Solution
       run: |
-        dotnet build AnthillNet.sln
+        msbuild.exe AnthillNet.sln /nologo /nr:false /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:platform="Any CPU" /p:configuration="Release" /p:PublishUrl="../_build"
   test:
     runs-on: windows-latest
     needs: build
