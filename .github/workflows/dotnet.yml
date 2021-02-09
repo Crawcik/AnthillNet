@@ -30,6 +30,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     
+    - name: Install dependencies
+      run: dotnet restore
+
     - name: Set PR Number
       id: PRNUMBER
       if: ${{ github.event_name == 'pull_request' }}
