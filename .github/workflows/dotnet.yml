@@ -23,15 +23,12 @@ jobs:
         msbuild.exe AnthillNet.sln /nologo /nr:false /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:DeleteExistingFiles=True /p:platform="Any CPU" /p:configuration="Release" /p:PublishUrl="../_build"
   test:
     runs-on: windows-latest
-
+    needs: build
     env:
       config: 'Release'
 
     steps:
     - uses: actions/checkout@v2
-    
-    - name: Install dependencies
-      run: dotnet restore
 
     - name: Set PR Number
       id: PRNUMBER
@@ -39,17 +36,21 @@ jobs:
       uses: kkak10/pr-number-action@v1.3
 
     - name: Set Test Title
-      run: | 
-            if (${{ github.event_name == 'pull_request' }}) then
+      run: |
+           if ${{ github.event_name == 'pull_request' }}
+           then
               echo "::set-env name=title::Test Run for PR #${{steps.PRNUMBER.outputs.pr}} (${{github.run_number}})"
               echo "::set-env name=file_name::TestReport.${{steps.PRNUMBER.outputs.pr}}.${{github.run_number}}.md"
-            else
+              echo "title=Test Run for PR #${{steps.PRNUMBER.outputs.pr}} (${{github.run_number}})" >> $GITHUB_ENV
+              echo "file_name=TestReport.${{steps.PRNUMBER.outputs.pr}}.${{github.run_number}}.md" >> $GITHUB_ENV
+           else
               echo "::set-env name=title::Test Run ${{github.run_number}}"
-              echo "::set-env name=file_name::TestReport.${{github.run_number}}.md"
-            fi
-
+-             echo "::set-env name=file_name::TestReport.${{github.run_number}}.md"
+              echo "title=Test Run ${{github.run_number}}" >> $GITHUB_ENV
+              echo "file_name=TestReport.${{github.run_number}}.md" >> $GITHUB_ENV
+           fi
     - name: Run TCP Test
-      run: dotnet test TestingLab.csproj --no-restore  --configuration $config --logger:"liquid.md;LogFileName=${{github.workspace}}/${{env.file_name}};Title=${{env.title}};"
+      run: dotnet test TestingLab.csproj --no-build --no-restore  --configuration $config --logger:"liquid.md;LogFileName=${{github.workspace}}/${{env.file_name}};Title=${{env.title}};"
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2
