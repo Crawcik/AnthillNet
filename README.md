@@ -1,11 +1,11 @@
-# *AnthillNet* is a library for network solutions with the simplest feature and a lot of customization settings
+# *AnthillNet* is a library for network solutions with simple features and a lot of customization settings
+## Currently project is completed and I don't think it will be continued due to the lack of people using this repository
 
 ### What it can I do in it?
 * **Send** and **receive** simple packet or serialized messages
 * You can make **events**, that can be invoke by server or client
 * Calling server or other clients to **execute method**
 * Get **logs** of operations preformed by host
-* Create own **events** and **net_args**
 
 ### What settings can I change in it?
 * Change protocol to **UDP** or **TCP**
@@ -60,9 +60,6 @@ public class Program
                 case 'o':
                     host.Order.Call(OrderTest); //You can also send method with argument
                     break;
-                case 'q':
-                    break;
-
             }
             if (x == 'q')
                 break;
